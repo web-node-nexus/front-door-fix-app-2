@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Front Door — Expo Go QR</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      margin: 0; min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 24px;
+      background: linear-gradient(135deg, #FFF5F9, #FDF4FF, #F8F9FC);
+    }
+    .card {
+      background: rgba(255,255,255,0.6);
+      backdrop-filter: blur(20px);
+      border: 1.5px solid rgba(255,255,255,0.85);
+      border-radius: 28px; padding: 32px; text-align: center;
+      max-width: 420px; width: 100%;
+      box-shadow: 0 16px 48px rgba(255,45,122,0.12);
+    }
+    h1 { color: #1A1A2E; margin: 0 0 4px; font-size: 24px; font-weight: 800; }
+    .badge {
+      display: inline-block; margin-bottom: 16px;
+      background: linear-gradient(135deg, #FF2D7A, #E879F9);
+      color: white; font-size: 11px; font-weight: 700;
+      padding: 4px 14px; border-radius: 20px;
+    }
+    p { color: #6B7280; font-size: 14px; margin: 8px 0; }
+    .qr-box {
+      background: white; border-radius: 20px; padding: 16px; margin: 16px 0;
+      border: 1px solid #F0F0F5;
+    }
+    img { width: 260px; height: 260px; border-radius: 12px; }
+    code {
+      display: block; background: #1A1A2E; color: #FF6B9D;
+      padding: 10px 14px; border-radius: 10px; margin: 10px 0;
+      font-size: 13px; word-break: break-all;
+    }
+    .warn {
+      background: #FFF7ED; border: 1px solid #FED7AA;
+      border-radius: 12px; padding: 12px; font-size: 12px;
+      color: #92400E; text-align: left; margin-top: 16px; line-height: 1.6;
+    }
+    .tab { margin-top: 20px; padding-top: 20px; border-top: 1px solid #F0F0F5; }
+    h3 { font-size: 14px; color: #FF2D7A; margin: 0 0 8px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🚪 Front Door</h1>
+    <span class="badge">EXPO GO · SCAN QR</span>
+    <p><strong>USB cable</strong> se phone connect ho to yeh QR scan karo:</p>
+
+    <div class="qr-box">
+      <img id="qr-usb" alt="USB QR" />
+      <code id="url-usb">exp://127.0.0.1:8081</code>
+    </div>
+
+    <div class="tab">
+      <h3>WiFi se (same network)</h3>
+      <div class="qr-box">
+        <img id="qr-wifi" alt="WiFi QR" style="width:200px;height:200px" />
+        <code id="url-wifi">exp://192.168.1.9:8081</code>
+      </div>
+    </div>
+
+    <div class="warn">
+      ⚠️ <strong>Pehle yeh chalao PC par:</strong><br>
+      1. <code style="display:inline;background:#FEF3C7;color:#92400E;padding:2px 6px">.\start-expo.ps1</code><br>
+      2. Play Store se <strong>Expo Go update</strong> karo (SDK 54)<br>
+      3. USB ho to <strong>USB QR</strong> scan karo<br>
+      4. WiFi ho to <strong>WiFi QR</strong> scan karo<br><br>
+      ❌ Flutter app Expo Go mein <strong>nahi</strong> chalti — sirf Expo wali app
+    </div>
+  </div>
+  <script>
+    const wifiIp = '192.168.1.9';
+    const usbUrl = 'exp://127.0.0.1:8081';
+    const wifiUrl = 'exp://' + wifiIp + ':8081';
+    document.getElementById('url-usb').textContent = usbUrl;
+    document.getElementById('url-wifi').textContent = wifiUrl;
+    document.getElementById('qr-usb').src =
+      'https://api.qrserver.com/v1/create-qr-code/?size=260x260&color=FF2D7A&bgcolor=FFFFFF&data=' + encodeURIComponent(usbUrl);
+    document.getElementById('qr-wifi').src =
+      'https://api.qrserver.com/v1/create-qr-code/?size=200x200&color=FF2D7A&bgcolor=FFFFFF&data=' + encodeURIComponent(wifiUrl);
+  </script>
+</body>
+</html>
