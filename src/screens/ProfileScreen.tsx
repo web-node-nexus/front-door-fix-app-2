@@ -14,23 +14,24 @@ import ProfileAvatar from '../components/ProfileAvatar';
 import ProfileMenuItem from '../components/ProfileMenuItem';
 import { BRAND } from '../config';
 import { useAuth } from '../context/AuthContext';
+import { useLocale } from '../context/LocaleContext';
 import { useNotifications } from '../context/NotificationContext';
 import { useProfile } from '../context/ProfileContext';
 import { api, Booking } from '../api/client';
 import { useScreenPadding } from '../hooks/useScreenPadding';
 
 const QUICK_ACTIONS = [
-  { icon: 'star' as const, bg: '#FCE7F3', title: 'My Bookings', sub: 'View all bookings', route: 'BookingsTab', tab: 'Upcoming' },
-  { icon: 'heart' as const, bg: '#F3E8FF', title: 'Wishlist', sub: 'Liked services', route: 'Favorites' },
-  { icon: 'ticket' as const, bg: '#D1FAE5', title: 'Offers', sub: 'Exclusive deals', route: 'Offers' },
-  { icon: 'wallet' as const, bg: '#FFEDD5', title: 'My Wallet', sub: 'Payments & refunds', route: 'Wallet' },
+  { icon: 'star' as const, bg: '#FCE7F3', titleKey: 'profile.quick.bookings', subKey: 'profile.quick.bookingsSub', route: 'BookingsTab', tab: 'Upcoming' },
+  { icon: 'heart' as const, bg: '#F3E8FF', titleKey: 'profile.quick.wishlist', subKey: 'profile.quick.wishlistSub', route: 'Favorites' },
+  { icon: 'ticket' as const, bg: '#D1FAE5', titleKey: 'profile.quick.offers', subKey: 'profile.quick.offersSub', route: 'Offers' },
+  { icon: 'wallet' as const, bg: '#FFEDD5', titleKey: 'profile.quick.wallet', subKey: 'profile.quick.walletSub', route: 'Wallet' },
 ];
 
 const ORDER_TABS = [
-  { icon: 'calendar-outline' as const, label: 'Upcoming', tab: 'Upcoming' },
-  { icon: 'sync-outline' as const, label: 'In Progress', tab: 'Active' },
-  { icon: 'checkmark-circle-outline' as const, label: 'Completed', tab: 'Completed' },
-  { icon: 'close-circle-outline' as const, label: 'Cancelled', tab: 'Cancelled' },
+  { icon: 'calendar-outline' as const, labelKey: 'profile.order.upcoming', tab: 'Upcoming' },
+  { icon: 'sync-outline' as const, labelKey: 'profile.order.active', tab: 'Active' },
+  { icon: 'checkmark-circle-outline' as const, labelKey: 'profile.order.completed', tab: 'Completed' },
+  { icon: 'close-circle-outline' as const, labelKey: 'profile.order.cancelled', tab: 'Cancelled' },
 ];
 
 function tabFor(status: string) {
@@ -43,6 +44,7 @@ function tabFor(status: string) {
 export default function ProfileScreen() {
   const nav = useNavigation<any>();
   const { user, logout } = useAuth();
+  const { t } = useLocale();
   const { unreadCount } = useNotifications();
   const { walletBalance, cashbackEarned, isPremium, rewardPoints } = useProfile();
   const screenPad = useScreenPadding({ headerless: true });
@@ -60,20 +62,20 @@ export default function ProfileScreen() {
   const goBookings = (tab: string) => nav.navigate('Bookings', { tab });
 
   const displayName = user?.name || 'Customer';
-  const displayPhone = user?.phone || 'Add phone number';
+  const displayPhone = user?.phone || t('profile.addPhone');
   const displayEmail = user?.email || '';
 
   const deleteAccount = () => {
-    Alert.alert('Delete Account', 'This will permanently delete your account. Continue?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('profile.deleteTitle'), t('profile.deleteBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('profile.delete'),
         style: 'destructive',
         onPress: async () => {
           Alert.alert(
-            'Request submitted',
-            'Our team will process your deletion request within 48 hours. You will now be signed out.',
-            [{ text: 'OK', onPress: () => logout() }],
+            t('profile.deleteDoneTitle'),
+            t('profile.deleteDoneBody'),
+            [{ text: t('common.ok'), onPress: () => logout() }],
           );
         },
       },
@@ -82,11 +84,11 @@ export default function ProfileScreen() {
 
   const confirmLogout = () => {
     Alert.alert(
-      'Logout',
-      'Are you sure you want to sign out of your account?',
+      t('profile.logoutConfirmTitle'),
+      t('profile.logoutConfirmBody'),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Logout', style: 'destructive', onPress: () => logout() },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('profile.logout'), style: 'destructive', onPress: () => logout() },
       ],
     );
   };
@@ -100,8 +102,8 @@ export default function ProfileScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.pageTitle}>My Profile</Text>
-          <Text style={styles.pageSub}>Manage your account and preferences</Text>
+          <Text style={styles.pageTitle}>{t('profile.title')}</Text>
+          <Text style={styles.pageSub}>{t('profile.subtitle')}</Text>
         </View>
         <View style={styles.headerIcons}>
           <Pressable style={styles.iconBtn} onPress={() => go('Notifications')}>
@@ -126,7 +128,7 @@ export default function ProfileScreen() {
               </View>
               <Pressable style={styles.editChip} onPress={() => go('PersonalInfo', { edit: true })} hitSlop={8}>
                 <Ionicons name="pencil" size={13} color={BRAND.primary} />
-                <Text style={styles.editText}>Edit</Text>
+                <Text style={styles.editText}>{t('profile.edit')}</Text>
               </Pressable>
             </View>
             <Text style={styles.contact}>{displayPhone}</Text>
@@ -134,13 +136,13 @@ export default function ProfileScreen() {
             {isPremium ? (
               <View style={styles.premiumBadge}>
                 <Ionicons name="diamond" size={12} color="#fff" />
-                <Text style={styles.premiumText}>Premium Member</Text>
+                <Text style={styles.premiumText}>{t('profile.premium')}</Text>
               </View>
             ) : (
               <Pressable onPress={() => go('Subscription')}>
                 <View style={styles.premiumBadge}>
                   <Ionicons name="diamond-outline" size={12} color="#fff" />
-                  <Text style={styles.premiumText}>Upgrade to Premium</Text>
+                  <Text style={styles.premiumText}>{t('profile.upgradePremium')}</Text>
                 </View>
               </Pressable>
             )}
@@ -151,14 +153,14 @@ export default function ProfileScreen() {
           <LinearGradient colors={['#FF2D7A', '#E91E63']} style={styles.walletGrad}>
             <View style={styles.walletTop}>
               <View>
-                <Text style={styles.walletLabel}>Wallet Balance</Text>
+                <Text style={styles.walletLabel}>{t('profile.wallet')}</Text>
                 <Text style={styles.walletAmt}>₹{walletBalance.toLocaleString('en-IN')}</Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.8)" />
             </View>
             <View style={styles.walletDivider} />
             <View style={styles.walletBottom}>
-              <Text style={styles.cashLabel}>Cashback Earned</Text>
+              <Text style={styles.cashLabel}>{t('profile.cashback')}</Text>
               <View style={styles.cashRow}>
                 <Text style={styles.cashAmt}>₹{cashbackEarned}</Text>
                 <Ionicons name="cash-outline" size={16} color="rgba(255,255,255,0.9)" />
@@ -172,29 +174,29 @@ export default function ProfileScreen() {
       <View style={styles.quickGrid}>
         {QUICK_ACTIONS.map((a) => (
           <Pressable
-            key={a.title}
+            key={a.titleKey}
             style={styles.quickCard}
             onPress={() => (a.route === 'BookingsTab' ? goBookings(a.tab!) : go(a.route))}
           >
             <View style={[styles.quickIcon, { backgroundColor: a.bg }]}>
               <Ionicons name={a.icon} size={22} color={BRAND.primary} />
             </View>
-            <Text style={styles.quickTitle}>{a.title}</Text>
-            <Text style={styles.quickSub}>{a.sub}</Text>
+            <Text style={styles.quickTitle}>{t(a.titleKey)}</Text>
+            <Text style={styles.quickSub}>{t(a.subKey)}</Text>
           </Pressable>
         ))}
       </View>
 
       {/* My Orders */}
       <View style={styles.secHead}>
-        <Text style={styles.secTitle}>My Orders</Text>
+        <Text style={styles.secTitle}>{t('profile.orders')}</Text>
         <Pressable onPress={() => goBookings('Upcoming')}>
-          <Text style={styles.secLink}>View All Orders ›</Text>
+          <Text style={styles.secLink}>{t('profile.viewAllOrders')}</Text>
         </Pressable>
       </View>
       <View style={styles.ordersRow}>
         {ORDER_TABS.map((o) => (
-          <Pressable key={o.label} style={styles.orderItem} onPress={() => goBookings(o.tab)}>
+          <Pressable key={o.tab} style={styles.orderItem} onPress={() => goBookings(o.tab)}>
             <View style={styles.orderIconWrap}>
               <Ionicons name={o.icon} size={24} color={BRAND.primary} />
               {counts[o.tab as keyof typeof counts] > 0 && (
@@ -203,46 +205,46 @@ export default function ProfileScreen() {
                 </View>
               )}
             </View>
-            <Text style={styles.orderLabel}>{o.label}</Text>
+            <Text style={styles.orderLabel}>{t(o.labelKey)}</Text>
           </Pressable>
         ))}
       </View>
 
       {/* Account & Settings */}
-      <Text style={[styles.secTitle, { marginTop: 24, marginBottom: 8 }]}>Account & Settings</Text>
+      <Text style={[styles.secTitle, { marginTop: 24, marginBottom: 8 }]}>{t('profile.account')}</Text>
       <View style={styles.menuCard}>
-        <ProfileMenuItem icon="person-outline" iconBg="#FCE7F3" title="Personal Information" subtitle="Name, phone, email" trailing="edit" onPress={() => go('PersonalInfo')} />
-        <ProfileMenuItem icon="location-outline" iconBg="#F3E8FF" title="Addresses" subtitle="Home, office & more" onPress={() => go('Addresses')} />
-        <ProfileMenuItem icon="card-outline" iconBg="#D1FAE5" title="Payment Methods" subtitle="UPI, cards & wallet" onPress={() => go('PaymentMethods')} />
-        <ProfileMenuItem icon="notifications-outline" iconBg="#FFEDD5" title="Notifications" subtitle="Push & SMS alerts" onPress={() => go('Notifications')} />
-        <ProfileMenuItem icon="shield-checkmark-outline" iconBg="#F3E8FF" title="Privacy & Security" subtitle="Password, biometrics" onPress={() => go('Security')} />
-        <ProfileMenuItem icon="gift-outline" iconBg="#FCE7F3" title="Refer & Earn" subtitle="Invite friends, earn ₹500" onPress={() => go('ReferEarn')} />
-        <ProfileMenuItem icon="headset-outline" iconBg="#DBEAFE" title="Help & Support" subtitle="Chat, call & FAQ" onPress={() => nav.navigate('Support')} />
-        <ProfileMenuItem icon="star-outline" iconBg="#FEF3C7" title="My Reviews" subtitle="Ratings & feedback" onPress={() => go('Reviews')} />
-        <ProfileMenuItem icon="time-outline" iconBg="#D1FAE5" title="Service History" subtitle="Past bookings" onPress={() => go('ServiceHistory')} />
-        <ProfileMenuItem icon="document-text-outline" iconBg="#FEE2E2" title="Invoices" subtitle="Download receipts" onPress={() => go('ServiceHistory')} />
-        <ProfileMenuItem icon="diamond-outline" iconBg="#F3E8FF" title="Subscription" subtitle="Premium membership" onPress={() => go('Subscription')} />
-        <ProfileMenuItem icon="settings-outline" iconBg="#F3F4F6" title="App Settings" subtitle="Language & preferences" onPress={() => go('AppSettings')} />
+        <ProfileMenuItem icon="person-outline" iconBg="#FCE7F3" title={t('profile.menu.personal')} subtitle={t('profile.menu.personalSub')} trailing="edit" onPress={() => go('PersonalInfo')} />
+        <ProfileMenuItem icon="location-outline" iconBg="#F3E8FF" title={t('profile.menu.addresses')} subtitle={t('profile.menu.addressesSub')} onPress={() => go('Addresses')} />
+        <ProfileMenuItem icon="card-outline" iconBg="#D1FAE5" title={t('profile.menu.payment')} subtitle={t('profile.menu.paymentSub')} onPress={() => go('PaymentMethods')} />
+        <ProfileMenuItem icon="notifications-outline" iconBg="#FFEDD5" title={t('profile.menu.notifications')} subtitle={t('profile.menu.notificationsSub')} onPress={() => go('Notifications')} />
+        <ProfileMenuItem icon="shield-checkmark-outline" iconBg="#F3E8FF" title={t('profile.menu.security')} subtitle={t('profile.menu.securitySub')} onPress={() => go('Security')} />
+        <ProfileMenuItem icon="gift-outline" iconBg="#FCE7F3" title={t('profile.menu.refer')} subtitle={t('profile.menu.referSub')} onPress={() => go('ReferEarn')} />
+        <ProfileMenuItem icon="headset-outline" iconBg="#DBEAFE" title={t('profile.menu.support')} subtitle={t('profile.menu.supportSub')} onPress={() => nav.navigate('Support')} />
+        <ProfileMenuItem icon="star-outline" iconBg="#FEF3C7" title={t('profile.menu.reviews')} subtitle={t('profile.menu.reviewsSub')} onPress={() => go('Reviews')} />
+        <ProfileMenuItem icon="time-outline" iconBg="#D1FAE5" title={t('profile.menu.history')} subtitle={t('profile.menu.historySub')} onPress={() => go('ServiceHistory')} />
+        <ProfileMenuItem icon="document-text-outline" iconBg="#FEE2E2" title={t('profile.menu.invoices')} subtitle={t('profile.menu.invoicesSub')} onPress={() => go('ServiceHistory')} />
+        <ProfileMenuItem icon="diamond-outline" iconBg="#F3E8FF" title={t('profile.menu.subscription')} subtitle={t('profile.menu.subscriptionSub')} onPress={() => go('Subscription')} />
+        <ProfileMenuItem icon="settings-outline" iconBg="#F3F4F6" title={t('profile.menu.settings')} subtitle={t('profile.menu.settingsSub')} onPress={() => go('AppSettings')} />
       </View>
 
       {/* Rewards */}
-      <Text style={[styles.secTitle, { marginTop: 24, marginBottom: 8 }]}>Front Door Rewards</Text>
+      <Text style={[styles.secTitle, { marginTop: 24, marginBottom: 8 }]}>{t('profile.rewards')}</Text>
       <View style={styles.rewardsRow}>
-        <View style={styles.rewardBox}><Text style={styles.rewardVal}>{rewardPoints}</Text><Text style={styles.rewardLabel}>Points Earned</Text></View>
-        <View style={styles.rewardBox}><Text style={styles.rewardVal}>₹{cashbackEarned}</Text><Text style={styles.rewardLabel}>Cashback</Text></View>
-        <View style={styles.rewardBox}><Text style={styles.rewardVal}>2</Text><Text style={styles.rewardLabel}>Gift Cards</Text></View>
+        <View style={styles.rewardBox}><Text style={styles.rewardVal}>{rewardPoints}</Text><Text style={styles.rewardLabel}>{t('profile.points')}</Text></View>
+        <View style={styles.rewardBox}><Text style={styles.rewardVal}>₹{cashbackEarned}</Text><Text style={styles.rewardLabel}>{t('profile.cashback')}</Text></View>
+        <View style={styles.rewardBox}><Text style={styles.rewardVal}>2</Text><Text style={styles.rewardLabel}>{t('profile.giftCards')}</Text></View>
       </View>
 
       {/* Premium Banner */}
       <LinearGradient colors={['#F3E8FF', '#FDF4FF']} style={styles.banner}>
         <Ionicons name="diamond" size={28} color={BRAND.purple} />
         <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text style={styles.bannerTitle}>Become a Premium Member</Text>
-          <Text style={styles.bannerSub}>Exclusive offers, priority support & special discounts</Text>
+          <Text style={styles.bannerTitle}>{t('profile.banner.premium')}</Text>
+          <Text style={styles.bannerSub}>{t('profile.banner.premiumSub')}</Text>
         </View>
         <Pressable onPress={() => go('Subscription')}>
           <LinearGradient colors={[BRAND.purple, BRAND.primary]} style={styles.upgradeBtn}>
-            <Text style={styles.upgradeText}>Upgrade</Text>
+            <Text style={styles.upgradeText}>{t('profile.upgrade')}</Text>
           </LinearGradient>
         </Pressable>
       </LinearGradient>
@@ -251,11 +253,11 @@ export default function ProfileScreen() {
       <LinearGradient colors={['#FCE7F3', '#FDF4FF']} style={styles.banner}>
         <Text style={{ fontSize: 28 }}>🎁</Text>
         <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text style={styles.bannerTitle}>Refer a Friend & Earn</Text>
-          <Text style={styles.bannerSub}>Get ₹500 cashback for every referral</Text>
+          <Text style={styles.bannerTitle}>{t('profile.banner.refer')}</Text>
+          <Text style={styles.bannerSub}>{t('profile.banner.referSub')}</Text>
         </View>
         <Pressable style={styles.inviteBtn} onPress={() => go('ReferEarn')}>
-          <Text style={styles.inviteText}>Invite Now</Text>
+          <Text style={styles.inviteText}>{t('profile.invite')}</Text>
         </Pressable>
       </LinearGradient>
 
@@ -265,14 +267,14 @@ export default function ProfileScreen() {
           <Ionicons name="log-out-outline" size={20} color={BRAND.primary} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.logoutTitle}>Logout</Text>
-          <Text style={styles.logoutSub}>Sign out from your account</Text>
+          <Text style={styles.logoutTitle}>{t('profile.logout')}</Text>
+          <Text style={styles.logoutSub}>{t('profile.logoutSub')}</Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={BRAND.light} />
       </Pressable>
 
       <Pressable style={styles.deleteBtn} onPress={deleteAccount}>
-        <Text style={styles.deleteText}>Delete Account</Text>
+        <Text style={styles.deleteText}>{t('profile.delete')}</Text>
       </Pressable>
     </ScrollView>
   );

@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { APP_STRINGS } from '../i18n/strings';
 
 export type AppLanguage = 'en' | 'hi' | 'mr';
 
@@ -19,7 +20,7 @@ type LocaleContextValue = {
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
 
-const STRINGS: Record<AppLanguage, Record<string, string>> = {
+const BASE_STRINGS: Record<AppLanguage, Record<string, string>> = {
   en: {
     'settings.title': 'App Settings',
     'settings.push': 'Push Notifications',
@@ -128,6 +129,12 @@ const STRINGS: Record<AppLanguage, Record<string, string>> = {
     'login.trust.verified': 'व्हेरिफाइड',
     'login.trust.support': '24/7 सपोर्ट',
   },
+};
+
+const STRINGS: Record<AppLanguage, Record<string, string>> = {
+  en: { ...BASE_STRINGS.en, ...APP_STRINGS.en },
+  hi: { ...BASE_STRINGS.hi, ...APP_STRINGS.hi },
+  mr: { ...BASE_STRINGS.mr, ...APP_STRINGS.mr },
 };
 
 export function LocaleProvider({ children }: { children: React.ReactNode }) {

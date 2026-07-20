@@ -19,6 +19,7 @@ import HomeGridServiceCard from '../components/HomeGridServiceCard';
 import HomeServiceCard from '../components/HomeServiceCard';
 import { BRAND } from '../config';
 import { useActiveBooking } from '../context/ActiveBookingContext';
+import { useLocale } from '../context/LocaleContext';
 import { useLocation } from '../context/LocationContext';
 import { useNotifications } from '../context/NotificationContext';
 import { OFFERS, REVIEWS, WHY_CHOOSE } from '../data/mock';
@@ -29,6 +30,7 @@ import { categoryIcon, categoryImageUrl } from '../utils/serviceImagery';
 export default function HomeScreen() {
   const nav = useNavigation<any>();
   const { location } = useLocation();
+  const { t } = useLocale();
   const { refresh: refreshActiveBooking } = useActiveBooking();
   const { unreadCount, refresh: refreshNotifications } = useNotifications();
   const screenPad = useScreenPadding({ headerless: true });
@@ -83,7 +85,7 @@ export default function HomeScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.locLabel}>Your Location</Text>
+          <Text style={styles.locLabel}>{t('home.yourLocation')}</Text>
           <Pressable style={styles.locRow} onPress={() => nav.navigate('LocationPicker')}>
             <Ionicons name="location" size={18} color={BRAND.primary} />
             <Text style={styles.locText} numberOfLines={1}>{location.label}</Text>
@@ -109,7 +111,7 @@ export default function HomeScreen() {
       <View style={styles.searchRow}>
         <Pressable style={styles.searchBox} onPress={() => goServices()}>
           <Ionicons name="search" size={20} color={BRAND.muted} />
-          <Text style={styles.searchPh}>Search for services...</Text>
+          <Text style={styles.searchPh}>{t('home.search')}</Text>
         </Pressable>
         <Pressable onPress={() => setFilterOpen(true)}>
           <LinearGradient colors={[BRAND.primary, BRAND.purple]} style={styles.filterBtn}>
@@ -121,18 +123,18 @@ export default function HomeScreen() {
       {/* Hero */}
       <Pressable onPress={() => goServices({ category: 'ac-repair' })}>
         <LinearGradient colors={[BRAND.primary, '#C026D3']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
-          <View style={styles.heroBadge}><Text style={styles.heroBadgeText}>SUMMER DEAL</Text></View>
-          <Text style={styles.heroTitle}>Up to 20% OFF</Text>
-          <Text style={styles.heroSub}>on AC Services</Text>
-          <View style={styles.heroCta}><Text style={styles.heroCtaText}>Book Now</Text></View>
+          <View style={styles.heroBadge}><Text style={styles.heroBadgeText}>{t('home.summerDeal')}</Text></View>
+          <Text style={styles.heroTitle}>{t('home.heroTitle')}</Text>
+          <Text style={styles.heroSub}>{t('home.heroSub')}</Text>
+          <View style={styles.heroCta}><Text style={styles.heroCtaText}>{t('home.bookNow')}</Text></View>
           <Ionicons name="snow" size={90} color="rgba(255,255,255,0.12)" style={styles.heroIcon} />
         </LinearGradient>
       </Pressable>
 
       {/* Most Booked — website style */}
       <View style={styles.secHead}>
-        <Text style={styles.secTitle}>Most Booked Services</Text>
-        <Pressable onPress={() => goServices()}><Text style={styles.secLink}>See All</Text></Pressable>
+        <Text style={styles.secTitle}>{t('home.mostBooked')}</Text>
+        <Pressable onPress={() => goServices()}><Text style={styles.secLink}>{t('home.seeAll')}</Text></Pressable>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.mostBookedRow}>
         {services.map((s) => (
@@ -146,9 +148,9 @@ export default function HomeScreen() {
 
       {/* Browse by Category — website style */}
       <View style={[styles.secHead, { marginTop: 24 }]}>
-        <Text style={styles.secTitle}>Browse by Category</Text>
+        <Text style={styles.secTitle}>{t('home.browseCategory')}</Text>
         <Pressable onPress={() => goServices()} hitSlop={8}>
-          <Text style={styles.secLink}>View All</Text>
+          <Text style={styles.secLink}>{t('home.viewAll')}</Text>
         </Pressable>
       </View>
       <View style={styles.catGrid}>
@@ -176,8 +178,8 @@ export default function HomeScreen() {
 
       {/* Popular Services Grid */}
       <View style={[styles.secHead, { marginTop: 24 }]}>
-        <Text style={styles.secTitle}>Popular Services</Text>
-        <Pressable onPress={() => goServices()}><Text style={styles.secLink}>See All</Text></Pressable>
+        <Text style={styles.secTitle}>{t('home.popular')}</Text>
+        <Pressable onPress={() => goServices()}><Text style={styles.secLink}>{t('home.seeAll')}</Text></Pressable>
       </View>
       <View style={styles.serviceGrid}>
         {gridServices.map((s) => (
@@ -190,7 +192,7 @@ export default function HomeScreen() {
       </View>
 
       {/* Why Choose Us */}
-      <Text style={[styles.secTitle, { marginTop: 24, marginBottom: 12 }]}>Why Choose Us</Text>
+      <Text style={[styles.secTitle, { marginTop: 24, marginBottom: 12 }]}>{t('home.whyChoose')}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 16 }}>
         {WHY_CHOOSE.map((w) => (
           <View key={w.title} style={styles.whyCard}>
@@ -202,7 +204,7 @@ export default function HomeScreen() {
       </ScrollView>
 
       {/* Offers */}
-      <Text style={[styles.secTitle, { marginTop: 24, marginBottom: 12 }]}>Featured Offers</Text>
+      <Text style={[styles.secTitle, { marginTop: 24, marginBottom: 12 }]}>{t('home.offers')}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
         {OFFERS.map((o) => (
           <Pressable key={o.title} onPress={() => nav.navigate('Offers')}>
@@ -219,7 +221,7 @@ export default function HomeScreen() {
       </ScrollView>
 
       {/* Reviews */}
-      <Text style={[styles.secTitle, { marginTop: 24, marginBottom: 12 }]}>Customer Reviews</Text>
+      <Text style={[styles.secTitle, { marginTop: 24, marginBottom: 12 }]}>{t('home.reviews')}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingBottom: 24 }}>
         {REVIEWS.map((r) => (
           <AppCard key={r.name} style={{ width: 260 }}>

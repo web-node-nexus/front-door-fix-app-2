@@ -14,25 +14,27 @@ import {
   View,
 } from 'react-native';
 import { BRAND } from '../config';
+import { useLocale } from '../context/LocaleContext';
 import { QUICK_HELP, RECENT_TICKETS, SUPPORT_PHONE, SUPPORT_WHATSAPP } from '../data/support';
 import { useScreenPadding } from '../hooks/useScreenPadding';
 
 const ASSIST_OPTIONS = [
-  { icon: 'chatbubble-ellipses', color: '#FCE7F3', title: 'Live Chat', sub: 'Chat with our support team', badge: 'Online', badgeIcon: 'ellipse', badgeColor: '#10B981' },
-  { icon: 'logo-whatsapp', color: '#DCFCE7', title: 'WhatsApp', sub: 'Message us on WhatsApp', badge: 'Quick Reply', badgeIcon: 'flash', badgeColor: BRAND.primary },
-  { icon: 'call', color: '#F3E8FF', title: 'Call Support', sub: 'Talk to our expert now', badge: '10 AM - 8 PM', badgeIcon: 'time-outline', badgeColor: BRAND.muted },
-  { icon: 'ticket', color: '#FFEDD5', title: 'Raise a Ticket', sub: 'Report an issue or problem', badge: 'Track Status', badgeIcon: 'home-outline', badgeColor: BRAND.muted },
+  { icon: 'chatbubble-ellipses', color: '#FCE7F3', id: 'live', titleKey: 'support.liveChat', subKey: 'support.liveChatSub', badgeKey: 'support.online', badgeIcon: 'ellipse', badgeColor: '#10B981' },
+  { icon: 'logo-whatsapp', color: '#DCFCE7', id: 'wa', titleKey: 'support.whatsapp', subKey: 'support.whatsappSub', badgeKey: 'support.quickReply', badgeIcon: 'flash', badgeColor: BRAND.primary },
+  { icon: 'call', color: '#F3E8FF', id: 'call', titleKey: 'support.call', subKey: 'support.callSub', badgeKey: 'support.callHours', badgeIcon: 'time-outline', badgeColor: BRAND.muted },
+  { icon: 'ticket', color: '#FFEDD5', id: 'ticket', titleKey: 'support.ticket', subKey: 'support.ticketSub', badgeKey: 'support.trackStatus', badgeIcon: 'home-outline', badgeColor: BRAND.muted },
 ] as const;
 
 const TRUST = [
-  { icon: 'shield-checkmark-outline', label: '100% Safe & Secure' },
-  { icon: 'time-outline', label: '24/7 Support' },
-  { icon: 'person-outline', label: 'Verified Experts' },
-  { icon: 'checkmark-circle-outline', label: 'Quick Resolution' },
-] as const;
+  { icon: 'shield-checkmark-outline' as const, labelKey: 'support.trust.safe' },
+  { icon: 'time-outline' as const, labelKey: 'support.trust.247' },
+  { icon: 'person-outline' as const, labelKey: 'support.trust.experts' },
+  { icon: 'checkmark-circle-outline' as const, labelKey: 'support.trust.quick' },
+];
 
 export default function SupportScreen() {
   const nav = useNavigation<any>();
+  const { t } = useLocale();
   const screenPad = useScreenPadding({ headerless: true, extraBottom: 100 });
   const [search, setSearch] = useState('');
   const [faqModal, setFaqModal] = useState<{ title: string; answer: string } | null>(null);
@@ -43,20 +45,20 @@ export default function SupportScreen() {
     return QUICK_HELP.filter((h) => h.title.toLowerCase().includes(q) || h.answer.toLowerCase().includes(q));
   }, [search]);
 
-  const openChat = () => Linking.openURL(SUPPORT_WHATSAPP).catch(() => Alert.alert('Live Chat', 'Opening WhatsApp support...'));
-  const openCall = () => Linking.openURL(`tel:${SUPPORT_PHONE}`).catch(() => Alert.alert('Call', SUPPORT_PHONE));
+  const openChat = () => Linking.openURL(SUPPORT_WHATSAPP).catch(() => Alert.alert(t('support.liveChat'), 'WhatsApp...'));
+  const openCall = () => Linking.openURL(`tel:${SUPPORT_PHONE}`).catch(() => Alert.alert(t('support.call'), SUPPORT_PHONE));
   const openEmergency = () => {
-    Alert.alert('Emergency Help', 'Connect to emergency support immediately?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Call Now', onPress: openCall },
+    Alert.alert(t('support.emergency'), t('support.emergencyConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('support.callNow'), onPress: openCall },
     ]);
   };
 
-  const handleAssist = (title: string) => {
-    if (title === 'Live Chat') openChat();
-    else if (title === 'WhatsApp') Linking.openURL(SUPPORT_WHATSAPP);
-    else if (title === 'Call Support') openCall();
-    else if (title === 'Raise a Ticket') nav.navigate('RaiseTicket');
+  const handleAssist = (id: string) => {
+    if (id === 'live') openChat();
+    else if (id === 'wa') Linking.openURL(SUPPORT_WHATSAPP);
+    else if (id === 'call') openCall();
+    else if (id === 'ticket') nav.navigate('RaiseTicket');
   };
 
   const leftCol = filteredHelp.filter((_, i) => i % 2 === 0);
@@ -71,12 +73,12 @@ export default function SupportScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.pageTitle}>Support</Text>
-            <Text style={styles.pageSub}>We are here to help you 24/7</Text>
+            <Text style={styles.pageTitle}>{t('support.title')}</Text>
+            <Text style={styles.pageSub}>{t('support.subtitle')}</Text>
           </View>
           <Pressable style={styles.safetyBtn} onPress={() => nav.navigate('Safety')}>
             <Ionicons name="shield-checkmark-outline" size={16} color={BRAND.primary} />
-            <Text style={styles.safetyText}>Your Safety</Text>
+            <Text style={styles.safetyText}>{t('support.safety')}</Text>
           </Pressable>
         </View>
 
@@ -85,7 +87,7 @@ export default function SupportScreen() {
           <Ionicons name="search" size={20} color={BRAND.muted} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search for help, issues or topics..."
+            placeholder={t('support.search')}
             placeholderTextColor={BRAND.light}
             value={search}
             onChangeText={setSearch}
@@ -96,18 +98,18 @@ export default function SupportScreen() {
         </View>
 
         {/* Assist cards */}
-        <Text style={styles.secTitle}>How can we assist you today?</Text>
+        <Text style={styles.secTitle}>{t('support.assist')}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.assistRow}>
           {ASSIST_OPTIONS.map((a) => (
-            <Pressable key={a.title} style={styles.assistCard} onPress={() => handleAssist(a.title)}>
+            <Pressable key={a.id} style={styles.assistCard} onPress={() => handleAssist(a.id)}>
               <View style={[styles.assistIcon, { backgroundColor: a.color }]}>
-                <Ionicons name={a.icon as any} size={26} color={a.title === 'WhatsApp' ? '#25D366' : BRAND.primary} />
+                <Ionicons name={a.icon as any} size={26} color={a.id === 'wa' ? '#25D366' : BRAND.primary} />
               </View>
-              <Text style={styles.assistTitle}>{a.title}</Text>
-              <Text style={styles.assistSub}>{a.sub}</Text>
+              <Text style={styles.assistTitle}>{t(a.titleKey)}</Text>
+              <Text style={styles.assistSub}>{t(a.subKey)}</Text>
               <View style={styles.assistBadge}>
                 <Ionicons name={a.badgeIcon as any} size={10} color={a.badgeColor} />
-                <Text style={styles.assistBadgeText}>{a.badge}</Text>
+                <Text style={styles.assistBadgeText}>{t(a.badgeKey)}</Text>
               </View>
             </Pressable>
           ))}
@@ -115,9 +117,9 @@ export default function SupportScreen() {
 
         {/* Quick Help */}
         <View style={styles.secHead}>
-          <Text style={styles.secTitle}>Quick Help</Text>
+          <Text style={styles.secTitle}>{t('support.quickHelp')}</Text>
           <Pressable onPress={() => nav.navigate('SupportFAQ')}>
-            <Text style={styles.secLink}>View All FAQs ›</Text>
+            <Text style={styles.secLink}>{t('support.viewFaqs')}</Text>
           </Pressable>
         </View>
         <View style={styles.helpGrid}>
@@ -140,8 +142,8 @@ export default function SupportScreen() {
               <Ionicons name="headset" size={36} color={BRAND.primary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.heroTitle}>We are here for you!</Text>
-              <Text style={styles.heroSub}>Our support team is available 24/7 to assist you with any issue.</Text>
+              <Text style={styles.heroTitle}>{t('support.heroTitle')}</Text>
+              <Text style={styles.heroSub}>{t('support.heroSub')}</Text>
               <View style={styles.expertsRow}>
                 <View style={styles.avatars}>
                   {['A', 'B', 'C'].map((l, i) => (
@@ -151,13 +153,13 @@ export default function SupportScreen() {
                   ))}
                   <View style={styles.plusBadge}><Text style={styles.plusText}>+12</Text></View>
                 </View>
-                <Text style={styles.expertsText}>20+ Experts are online</Text>
+                <Text style={styles.expertsText}>{t('support.expertsOnline')}</Text>
               </View>
             </View>
           </View>
           <Pressable onPress={openChat}>
             <LinearGradient colors={[BRAND.primary, '#E91E63']} style={styles.chatBtn}>
-              <Text style={styles.chatBtnText}>Start Live Chat</Text>
+              <Text style={styles.chatBtnText}>{t('support.startChat')}</Text>
               <Ionicons name="arrow-forward" size={16} color="#fff" />
             </LinearGradient>
           </Pressable>
@@ -165,56 +167,56 @@ export default function SupportScreen() {
 
         {/* Recent Issues */}
         <View style={styles.secHead}>
-          <Text style={styles.secTitle}>Your Recent Issues</Text>
+          <Text style={styles.secTitle}>{t('support.recentIssues')}</Text>
           <Pressable onPress={() => nav.navigate('SupportTickets')}>
-            <Text style={styles.secLink}>View All Tickets</Text>
+            <Text style={styles.secLink}>{t('support.viewTickets')}</Text>
           </Pressable>
         </View>
-        {RECENT_TICKETS.map((t) => (
-          <Pressable key={t.id} style={styles.ticketCard} onPress={() => nav.navigate('SupportTicketDetail', { ticket: t })}>
-            <View style={[styles.ticketIcon, { backgroundColor: t.status === 'resolved' ? '#D1FAE5' : BRAND.lavender }]}>
-              <Ionicons name={t.icon === 'star' ? 'star' : 'checkmark-circle'} size={20} color={BRAND.primary} />
+        {RECENT_TICKETS.map((ticket) => (
+          <Pressable key={ticket.id} style={styles.ticketCard} onPress={() => nav.navigate('SupportTicketDetail', { ticket })}>
+            <View style={[styles.ticketIcon, { backgroundColor: ticket.status === 'resolved' ? '#D1FAE5' : BRAND.lavender }]}>
+              <Ionicons name={ticket.icon === 'star' ? 'star' : 'checkmark-circle'} size={20} color={BRAND.primary} />
             </View>
             <View style={{ flex: 1 }}>
               <View style={styles.ticketTop}>
-                <Text style={styles.ticketId}>#{t.id}</Text>
-                <View style={[styles.statusBadge, t.status === 'resolved' ? styles.resolved : styles.progress]}>
-                  <Text style={[styles.statusText, t.status === 'resolved' ? styles.resolvedText : styles.progressText]}>
-                    {t.status === 'resolved' ? 'Resolved' : 'In Progress'}
+                <Text style={styles.ticketId}>#{ticket.id}</Text>
+                <View style={[styles.statusBadge, ticket.status === 'resolved' ? styles.resolved : styles.progress]}>
+                  <Text style={[styles.statusText, ticket.status === 'resolved' ? styles.resolvedText : styles.progressText]}>
+                    {ticket.status === 'resolved' ? t('support.resolved') : t('support.inProgress')}
                   </Text>
                 </View>
               </View>
-              <Text style={styles.ticketTitle}>{t.title}</Text>
-              <Text style={styles.ticketTime}>{t.time}</Text>
+              <Text style={styles.ticketTitle}>{ticket.title}</Text>
+              <Text style={styles.ticketTime}>{ticket.time}</Text>
             </View>
-            <Pressable style={styles.viewBtn} onPress={() => nav.navigate('SupportTicketDetail', { ticket: t })}>
-              <Text style={styles.viewBtnText}>{t.status === 'resolved' ? 'View Details' : 'View Ticket'}</Text>
+            <Pressable style={styles.viewBtn} onPress={() => nav.navigate('SupportTicketDetail', { ticket })}>
+              <Text style={styles.viewBtnText}>{ticket.status === 'resolved' ? t('support.viewDetails') : t('support.viewTicket')}</Text>
             </Pressable>
           </Pressable>
         ))}
 
         {/* Emergency */}
-        <Text style={[styles.secTitle, { marginTop: 8 }]}>Emergency Help</Text>
+        <Text style={[styles.secTitle, { marginTop: 8 }]}>{t('support.emergency')}</Text>
         <View style={styles.emergencyCard}>
           <View style={styles.siren}><Text style={{ fontSize: 28 }}>🚨</Text></View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.emergencyTitle}>Facing an emergency?</Text>
-            <Text style={styles.emergencySub}>Get immediate help for urgent issues</Text>
+            <Text style={styles.emergencyTitle}>{t('support.emergencyTitle')}</Text>
+            <Text style={styles.emergencySub}>{t('support.emergencySub')}</Text>
           </View>
           <Pressable onPress={openEmergency}>
             <LinearGradient colors={[BRAND.primary, '#E91E63']} style={styles.emergencyBtn}>
               <Ionicons name="call" size={16} color="#fff" />
-              <Text style={styles.emergencyBtnText}>Emergency{'\n'}Call</Text>
+              <Text style={styles.emergencyBtnText}>{t('support.emergencyCall')}</Text>
             </LinearGradient>
           </Pressable>
         </View>
 
         {/* Trust bar */}
         <View style={styles.trustBar}>
-          {TRUST.map((t) => (
-            <View key={t.label} style={styles.trustItem}>
-              <Ionicons name={t.icon} size={18} color={BRAND.primary} />
-              <Text style={styles.trustLabel}>{t.label}</Text>
+          {TRUST.map((item) => (
+            <View key={item.labelKey} style={styles.trustItem}>
+              <Ionicons name={item.icon} size={18} color={BRAND.primary} />
+              <Text style={styles.trustLabel}>{t(item.labelKey)}</Text>
             </View>
           ))}
         </View>
@@ -227,7 +229,7 @@ export default function SupportScreen() {
             <Text style={styles.modalTitle}>{faqModal?.title}</Text>
             <Text style={styles.modalBody}>{faqModal?.answer}</Text>
             <Pressable style={styles.modalClose} onPress={() => setFaqModal(null)}>
-              <Text style={styles.modalCloseText}>Got it</Text>
+              <Text style={styles.modalCloseText}>{t('common.ok')}</Text>
             </Pressable>
           </Pressable>
         </Pressable>

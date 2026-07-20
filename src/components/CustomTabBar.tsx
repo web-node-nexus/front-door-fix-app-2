@@ -5,17 +5,24 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BRAND } from '../config';
+import { useLocale } from '../context/LocaleContext';
 import { navigateToServices } from '../navigation/navigationRef';
 
-const TABS: { name: string; label: string; icon: keyof typeof Ionicons.glyphMap; iconFocused: keyof typeof Ionicons.glyphMap }[] = [
-  { name: 'Home', label: 'Home', icon: 'home-outline', iconFocused: 'home' },
-  { name: 'Bookings', label: 'My Bookings', icon: 'calendar-outline', iconFocused: 'calendar' },
-  { name: 'Support', label: 'Support', icon: 'headset-outline', iconFocused: 'headset' },
-  { name: 'Profile', label: 'Profile', icon: 'person-outline', iconFocused: 'person' },
+const TAB_DEFS: {
+  name: string;
+  labelKey: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  iconFocused: keyof typeof Ionicons.glyphMap;
+}[] = [
+  { name: 'Home', labelKey: 'tabs.home', icon: 'home-outline', iconFocused: 'home' },
+  { name: 'Bookings', labelKey: 'tabs.bookings', icon: 'calendar-outline', iconFocused: 'calendar' },
+  { name: 'Support', labelKey: 'tabs.support', icon: 'headset-outline', iconFocused: 'headset' },
+  { name: 'Profile', labelKey: 'tabs.profile', icon: 'person-outline', iconFocused: 'person' },
 ];
 
 export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { t } = useLocale();
 
   const openServices = () => {
     navigateToServices();
@@ -24,7 +31,7 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   return (
     <View style={[styles.wrap, { paddingBottom: insets.bottom + 8 }]}>
       <View style={styles.bar}>
-        {TABS.slice(0, 2).map((tab) => {
+        {TAB_DEFS.slice(0, 2).map((tab) => {
           const route = state.routes.find((r) => r.name === tab.name);
           if (!route) return null;
           const idx = state.routes.indexOf(route);
@@ -32,7 +39,7 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
           return (
             <Pressable key={tab.name} style={styles.tab} onPress={() => navigation.navigate(tab.name)}>
               <Ionicons name={focused ? tab.iconFocused : tab.icon} size={22} color={focused ? BRAND.primary : BRAND.light} />
-              <Text style={[styles.label, focused && styles.labelActive]}>{tab.label}</Text>
+              <Text style={[styles.label, focused && styles.labelActive]}>{t(tab.labelKey)}</Text>
             </Pressable>
           );
         })}
@@ -40,12 +47,12 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
         <View style={styles.fabSlot}>
           <Pressable onPress={openServices}>
             <LinearGradient colors={[BRAND.primary, '#E91E63']} style={styles.fab}>
-              <Text style={styles.fabText}>Book{'\n'}Now</Text>
+              <Text style={styles.fabText}>{t('tabs.bookNow')}</Text>
             </LinearGradient>
           </Pressable>
         </View>
 
-        {TABS.slice(2).map((tab) => {
+        {TAB_DEFS.slice(2).map((tab) => {
           const route = state.routes.find((r) => r.name === tab.name);
           if (!route) return null;
           const idx = state.routes.indexOf(route);
@@ -53,7 +60,7 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
           return (
             <Pressable key={tab.name} style={styles.tab} onPress={() => navigation.navigate(tab.name)}>
               <Ionicons name={focused ? tab.iconFocused : tab.icon} size={22} color={focused ? BRAND.primary : BRAND.light} />
-              <Text style={[styles.label, focused && styles.labelActive]}>{tab.label}</Text>
+              <Text style={[styles.label, focused && styles.labelActive]}>{t(tab.labelKey)}</Text>
             </Pressable>
           );
         })}

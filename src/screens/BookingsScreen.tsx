@@ -18,17 +18,18 @@ import { api, Booking } from '../api/client';
 import BookingCard from '../components/BookingCard';
 import { BRAND } from '../config';
 import { useActiveBooking } from '../context/ActiveBookingContext';
+import { useLocale } from '../context/LocaleContext';
 import { useScreenPadding } from '../hooks/useScreenPadding';
 import { downloadBookingInvoice } from '../utils/invoiceDownload';
 
 type TabKey = 'All' | 'Upcoming' | 'Active' | 'Completed' | 'Cancelled';
 
-const TABS: { key: TabKey; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { key: 'All', label: 'All Bookings', icon: 'grid-outline' },
-  { key: 'Upcoming', label: 'Upcoming', icon: 'time-outline' },
-  { key: 'Active', label: 'In Progress', icon: 'sync-outline' },
-  { key: 'Completed', label: 'Completed', icon: 'checkmark-circle-outline' },
-  { key: 'Cancelled', label: 'Cancelled', icon: 'close-circle-outline' },
+const TAB_KEYS: { key: TabKey; labelKey: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: 'All', labelKey: 'bookings.tab.all', icon: 'grid-outline' },
+  { key: 'Upcoming', labelKey: 'bookings.tab.upcoming', icon: 'time-outline' },
+  { key: 'Active', labelKey: 'bookings.tab.active', icon: 'sync-outline' },
+  { key: 'Completed', labelKey: 'bookings.tab.completed', icon: 'checkmark-circle-outline' },
+  { key: 'Cancelled', labelKey: 'bookings.tab.cancelled', icon: 'close-circle-outline' },
 ];
 
 function getTab(b: Booking): TabKey {
@@ -42,6 +43,7 @@ function getTab(b: Booking): TabKey {
 export default function BookingsScreen() {
   const nav = useNavigation<any>();
   const route = useRoute<any>();
+  const { t } = useLocale();
   const screenPad = useScreenPadding({ headerless: true, extraBottom: 100 });
   const [tab, setTab] = useState<TabKey>('All');
   const [search, setSearch] = useState('');
@@ -55,9 +57,9 @@ export default function BookingsScreen() {
   const { refresh: refreshActiveBooking } = useActiveBooking();
 
   useEffect(() => {
-    const t = route.params?.tab;
-    if (t === 'In Progress') setTab('Active');
-    else if (t && TABS.some((x) => x.key === t)) setTab(t);
+    const tabParam = route.params?.tab;
+    if (tabParam === 'In Progress') setTab('Active');
+    else if (tabParam && TAB_KEYS.some((x) => x.key === tabParam)) setTab(tabParam);
   }, [route.params?.tab]);
 
   const load = useCallback(async (refresh = false) => {
@@ -106,7 +108,7 @@ export default function BookingsScreen() {
     return (
       <View style={styles.center}>
         <ActivityIndicator color={BRAND.primary} size="large" />
-        <Text style={styles.loadingText}>Loading your bookings...</Text>
+        <Text style={styles.loadingText}>{t('bookings.loading')}</Text>
       </View>
     );
   }
@@ -115,8 +117,8 @@ export default function BookingsScreen() {
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: screenPad.paddingTop }]}>
         <View>
-          <Text style={styles.pageTitle}>My Bookings</Text>
-          <Text style={styles.pageSub}>Track and manage all your services</Text>
+          <Text style={styles.pageTitle}>{t('bookings.title')}</Text>
+          <Text style={styles.pageSub}>{t('bookings.subtitle')}</Text>
         </View>
         <View style={styles.headerIcons}>
           <Pressable style={styles.iconBtn} onPress={() => setSearchOpen(!searchOpen)}>
@@ -133,7 +135,7 @@ export default function BookingsScreen() {
           <Ionicons name="search" size={18} color={BRAND.muted} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search bookings..."
+            placeholder={t('bookings.search')}
             placeholderTextColor={BRAND.light}
             value={search}
             onChangeText={setSearch}
@@ -144,20 +146,20 @@ export default function BookingsScreen() {
 
       <View style={styles.tabsWrap}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsRow}>
-          {TABS.map((t) => {
-            const active = tab === t.key;
-            const count = t.key !== 'All' ? counts[t.key] : 0;
+          {TAB_KEYS.map((item) => {
+            const active = tab === item.key;
+            const count = item.key !== 'All' ? counts[item.key] : 0;
             return (
-              <Pressable key={t.key} onPress={() => setTab(t.key)}>
+              <Pressable key={item.key} onPress={() => setTab(item.key)}>
                 {active ? (
                   <LinearGradient colors={[BRAND.primary, '#E91E63']} style={styles.tabActive}>
-                    <Ionicons name={t.icon} size={14} color="#fff" />
-                    <Text style={styles.tabTextActive}>{t.label}</Text>
+                    <Ionicons name={item.icon} size={14} color="#fff" />
+                    <Text style={styles.tabTextActive}>{t(item.labelKey)}</Text>
                   </LinearGradient>
                 ) : (
                   <View style={styles.tab}>
-                    <Ionicons name={t.icon} size={14} color={BRAND.muted} />
-                    <Text style={styles.tabText}>{t.label}</Text>
+                    <Ionicons name={item.icon} size={14} color={BRAND.muted} />
+                    <Text style={styles.tabText}>{t(item.labelKey)}</Text>
                     {count > 0 && (
                       <View style={styles.badge}><Text style={styles.badgeText}>{count}</Text></View>
                     )}
@@ -173,7 +175,7 @@ export default function BookingsScreen() {
         <View style={styles.errorBox}>
           <Ionicons name="cloud-offline-outline" size={20} color="#B91C1C" />
           <Text style={styles.errorText}>{error}</Text>
-          <Pressable onPress={() => load()}><Text style={styles.retryText}>Retry</Text></Pressable>
+          <Pressable onPress={() => load()}><Text style={styles.retryText}>{t('bookings.retry')}</Text></Pressable>
         </View>
       )}
 
@@ -185,14 +187,14 @@ export default function BookingsScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="calendar-outline" size={56} color={BRAND.light} />
-            <Text style={styles.emptyTitle}>{error ? 'Could not load bookings' : 'No bookings found'}</Text>
+            <Text style={styles.emptyTitle}>{error ? t('bookings.emptyError') : t('bookings.empty')}</Text>
             <Text style={styles.emptySub}>
-              {error ? 'Check backend + adb reverse, then retry' : 'Book a service to see it here'}
+              {error ? t('bookings.emptyErrorSub') : t('bookings.emptySub')}
             </Text>
             {!error && (
               <Pressable onPress={() => nav.navigate('Services')}>
                 <LinearGradient colors={[BRAND.primary, BRAND.purple]} style={styles.bookCta}>
-                  <Text style={styles.bookCtaText}>Book a Service</Text>
+                  <Text style={styles.bookCtaText}>{t('bookings.bookCta')}</Text>
                 </LinearGradient>
               </Pressable>
             )}
@@ -214,17 +216,17 @@ export default function BookingsScreen() {
       <Modal visible={filterOpen} transparent animationType="slide" onRequestClose={() => setFilterOpen(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setFilterOpen(false)}>
           <Pressable style={styles.modalSheet} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.modalTitle}>Filter & Sort</Text>
-            <Text style={styles.modalLabel}>Sort by</Text>
+            <Text style={styles.modalTitle}>{t('bookings.filterTitle')}</Text>
+            <Text style={styles.modalLabel}>{t('bookings.sortBy')}</Text>
             {(['date', 'amount'] as const).map((s) => (
               <Pressable key={s} style={styles.filterOpt} onPress={() => setSortBy(s)}>
                 <Ionicons name={sortBy === s ? 'radio-button-on' : 'radio-button-off'} size={20} color={BRAND.primary} />
-                <Text style={styles.filterOptText}>{s === 'date' ? 'Booking Date' : 'Amount (High to Low)'}</Text>
+                <Text style={styles.filterOptText}>{s === 'date' ? t('bookings.sortDate') : t('bookings.sortAmount')}</Text>
               </Pressable>
             ))}
             <Pressable onPress={() => setFilterOpen(false)}>
               <LinearGradient colors={[BRAND.primary, BRAND.purple]} style={styles.applyBtn}>
-                <Text style={styles.applyText}>Apply</Text>
+                <Text style={styles.applyText}>{t('bookings.apply')}</Text>
               </LinearGradient>
             </Pressable>
           </Pressable>
