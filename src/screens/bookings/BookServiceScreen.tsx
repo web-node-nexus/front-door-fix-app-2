@@ -3,12 +3,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import React, { useCallback, useRef, useState } from 'react';
 import {
-  Alert,
   Image,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { api, Booking, Service } from '../../api/client';
@@ -17,75 +17,45 @@ import KeyboardAwareScroll from '../../components/KeyboardAwareScroll';
 import KeyboardTextInput from '../../components/KeyboardTextInput';
 import { BRAND } from '../../config';
 import { useActiveBooking } from '../../context/ActiveBookingContext';
-import { useLocation } from '../../context/LocationContext';
+import { useFeedback } from '../../context/FeedbackContext';
+import { pincodeForCity, useLocation } from '../../context/LocationContext';
 import { nextDates, TIME_SLOTS } from '../../data/bookingSlots';
 import { useScreenPadding } from '../../hooks/useScreenPadding';
 import { durationLabel, serviceImageUrl } from '../../utils/serviceImagery';
-
-function parseLocationLabel(label: string): { address: string; city: string } {
-  const parts = label.split(',').map((p) => p.trim()).filter(Boolean);
-  if (parts.length >= 2) {
-    return {
-      address: parts.slice(0, -1).join(', '),
-      city: parts[parts.length - 1],
-    };
-  }
-  return { address: label, city: label };
-}
-
-const SERVICEABLE_PINCODES: Record<string, string> = {
-  mumbai: '400001',
-  powai: '400001',
-  andheri: '400001',
-  delhi: '110001',
-  bangalore: '560001',
-  bengaluru: '560001',
-  pune: '411001',
-  hyderabad: '500001',
-};
-
-function pincodeForLocation(city: string, label: string): string {
-  const haystack = `${city} ${label}`.toLowerCase();
-  for (const [key, pin] of Object.entries(SERVICEABLE_PINCODES)) {
-    if (haystack.includes(key)) return pin;
-  }
-  return '400001';
-}
 
 export default function BookServiceScreen() {
   const nav = useNavigation<any>();
   const route = useRoute<any>();
   const pad = useScreenPadding();
-  const { location } = useLocation();
+  const { location, updateLocation } = useLocation();
+  const { showError, showWarning } = useFeedback();
   const { refresh: refreshActiveBooking } = useActiveBooking();
   const service: Service = route.params?.service;
   const dates = nextDates();
   const pickingLocation = useRef(false);
 
-  const parsed = parseLocationLabel(location.label);
-
   const [date, setDate] = useState(dates[1]?.value || dates[0].value);
   const [slot, setSlot] = useState(TIME_SLOTS[1]);
-  const [addressLine, setAddressLine] = useState('');
-  const [city, setCity] = useState(parsed.city);
-  const [pincode, setPincode] = useState(pincodeForLocation(parsed.city, location.label));
+  const [addressLine, setAddressLine] = useState(location.addressLine);
+  const [city, setCity] = useState(location.city || 'Mumbai');
+  const [pincode, setPincode] = useState(location.pincode || pincodeForCity(location.city, location.label));
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'upi'>('cod');
   const [saving, setSaving] = useState(false);
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
 
-  const applyLocation = useCallback((label: string) => {
-    const next = parseLocationLabel(label);
-    setCity(next.city);
-    setPincode(pincodeForLocation(next.city, label));
-  }, []);
+  const syncFromLocation = useCallback(() => {
+    setAddressLine(location.addressLine);
+    setCity(location.city || 'Mumbai');
+    setPincode(location.pincode || pincodeForCity(location.city, location.label));
+  }, [location.addressLine, location.city, location.pincode, location.label]);
 
   useFocusEffect(
     useCallback(() => {
       if (pickingLocation.current) {
-        applyLocation(location.label);
         pickingLocation.current = false;
       }
-    }, [location.label, applyLocation]),
+      syncFromLocation();
+    }, [location.label, location.city, location.pincode, location.addressLine, syncFromLocation]),
   );
 
   const openLocationPicker = () => {
@@ -100,20 +70,50 @@ export default function BookServiceScreen() {
     return extra || base;
   };
 
+  const onCityChange = (value: string) => {
+    setCity(value);
+    const nextPin = pincodeForCity(value, location.label);
+    setPincode(nextPin);
+    updateLocation({ city: value, pincode: nextPin });
+  };
+
+  const onPincodeChange = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 6);
+    setPincode(digits);
+    updateLocation({ pincode: digits });
+  };
+
+  const onAddressLineChange = (value: string) => {
+    setAddressLine(value);
+    updateLocation({ addressLine: value });
+  };
+
   const confirm = async () => {
+    if (!service?.id) {
+      showWarning('Service missing', 'Please go back and select a service again.');
+      return;
+    }
+
     const address = fullAddress();
     if (!address.trim()) {
-      Alert.alert('Address required', 'Please select location on map or enter your address.');
+      showWarning('Address required', 'Please select location on map or enter your address.');
       return;
     }
     if (!city.trim()) {
-      Alert.alert('City required', 'Please enter your city.');
+      showWarning('City required', 'Please enter your city.');
       return;
     }
     if (!/^\d{6}$/.test(pincode.trim())) {
-      Alert.alert('Invalid pincode', 'Please enter a valid 6-digit pincode.');
+      showWarning('Invalid pincode', 'Please enter a valid 6-digit pincode.');
       return;
     }
+    if (!date || !slot) {
+      showWarning('Schedule required', 'Please select date and time slot.');
+      return;
+    }
+
+    const method = paymentMethod === 'upi' ? 'upi' : 'cod';
+    await updateLocation({ city: city.trim(), pincode: pincode.trim(), addressLine: addressLine.trim() });
 
     setSaving(true);
     try {
@@ -124,12 +124,12 @@ export default function BookServiceScreen() {
         pincode: pincode.trim(),
         booking_date: date,
         time_slot: slot,
-        payment_method: paymentMethod,
+        payment_method: method,
       });
       setConfirmedBooking(res.booking);
       refreshActiveBooking();
     } catch (e) {
-      Alert.alert('Booking failed', e instanceof Error ? e.message : 'Could not complete booking');
+      showError('Booking failed', e instanceof Error ? e.message : 'Could not complete booking. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -137,8 +137,9 @@ export default function BookServiceScreen() {
 
   const viewBooking = () => {
     if (!confirmedBooking) return;
+    const booking = confirmedBooking;
     setConfirmedBooking(null);
-    nav.navigate('LiveTracking', { booking: confirmedBooking });
+    nav.navigate('BookingDetail', { booking });
   };
 
   const viewAllBookings = () => {
@@ -191,27 +192,28 @@ export default function BookServiceScreen() {
           placeholder="Flat no., building, landmark (optional)"
           placeholderTextColor={BRAND.light}
           value={addressLine}
-          onChangeText={setAddressLine}
+          onChangeText={onAddressLineChange}
           multiline
         />
       </View>
       <View style={styles.row}>
         <View style={[styles.field, styles.half]}>
-          <KeyboardTextInput
+          <TextInput
             style={styles.inputPlain}
             placeholder="City"
             placeholderTextColor={BRAND.light}
             value={city}
-            onChangeText={setCity}
+            onChangeText={onCityChange}
+            autoCapitalize="words"
           />
         </View>
         <View style={[styles.field, styles.half]}>
-          <KeyboardTextInput
+          <TextInput
             style={styles.inputPlain}
             placeholder="Pincode"
             placeholderTextColor={BRAND.light}
             value={pincode}
-            onChangeText={setPincode}
+            onChangeText={onPincodeChange}
             keyboardType="number-pad"
             maxLength={6}
           />
@@ -282,7 +284,7 @@ export default function BookServiceScreen() {
       </View>
 
       <Pressable onPress={confirm} disabled={saving}>
-        <LinearGradient colors={[BRAND.primary, BRAND.purple]} style={styles.btn}>
+        <LinearGradient colors={[BRAND.primary, BRAND.purple]} style={[styles.btn, saving && styles.btnDisabled]}>
           <Ionicons name="checkmark-circle" size={20} color="#fff" />
           <Text style={styles.btnText}>{saving ? 'Booking...' : 'Confirm Booking'}</Text>
         </LinearGradient>
@@ -365,7 +367,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   input: { flex: 1, fontSize: 15, color: BRAND.ink, minHeight: 44 },
-  inputPlain: { flex: 1, fontSize: 15, color: BRAND.ink },
+  inputPlain: { flex: 1, fontSize: 15, color: BRAND.ink, paddingVertical: 2 },
   row: { flexDirection: 'row', gap: 10 },
   half: { flex: 1 },
   pinHint: { fontSize: 11, color: BRAND.muted, lineHeight: 16, marginBottom: 8, marginTop: -2 },
@@ -430,5 +432,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
+  btnDisabled: { opacity: 0.75 },
   btnText: { color: '#fff', fontWeight: '800', fontSize: 16 },
 });

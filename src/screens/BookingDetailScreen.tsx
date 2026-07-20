@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Booking } from '../api/client';
@@ -10,11 +10,21 @@ import { getPaymentDisplay } from '../utils/bookingPayment';
 import { downloadBookingInvoice } from '../utils/invoiceDownload';
 import { serviceImageUrl } from '../utils/serviceImagery';
 
+function bookingTab(b: Booking): 'Upcoming' | 'Active' | 'Completed' | 'Cancelled' {
+  if (b.tab) return b.tab;
+  if (b.status === 'cancelled') return 'Cancelled';
+  if (b.status === 'completed') return 'Completed';
+  if (b.status === 'in_progress') return 'Active';
+  return 'Upcoming';
+}
+
 export default function BookingDetailScreen() {
+  const nav = useNavigation<any>();
   const route = useRoute<any>();
   const pad = useScreenPadding();
   const booking: Booking = route.params?.booking;
   const [downloading, setDownloading] = useState(false);
+  const tab = bookingTab(booking);
   const payment = getPaymentDisplay(booking);
   const paymentStyles = {
     paid: { bg: '#ECFDF5', color: '#059669' },
@@ -26,6 +36,11 @@ export default function BookingDetailScreen() {
     || booking?.tab === 'Completed'
     || booking?.status === 'completed'
     || booking?.is_paid;
+
+  const canTrack = (tab === 'Upcoming' || tab === 'Active') && Boolean(booking?.professional?.trim());
+  const canReschedule = tab === 'Upcoming';
+  const canCancel = tab === 'Upcoming' || tab === 'Active';
+  const canRate = tab === 'Completed';
 
   const imageUri = booking?.service_image
     ? (booking.service_image.startsWith('http') ? booking.service_image : `${ASSET_BASE_URL}/storage/${booking.service_image}`)
@@ -76,6 +91,33 @@ export default function BookingDetailScreen() {
         {booking?.is_paid ? (
           <Ionicons name="checkmark-circle" size={24} color={paymentStyles.color} />
         ) : null}
+      </View>
+
+      <View style={styles.actions}>
+        {canTrack && (
+          <Pressable style={styles.actionBtn} onPress={() => nav.navigate('LiveTracking', { booking })}>
+            <Ionicons name="navigate-outline" size={18} color={BRAND.primary} />
+            <Text style={styles.actionText}>Track Professional</Text>
+          </Pressable>
+        )}
+        {canReschedule && (
+          <Pressable style={styles.actionBtn} onPress={() => nav.navigate('RescheduleBooking', { booking })}>
+            <Ionicons name="calendar-outline" size={18} color={BRAND.primary} />
+            <Text style={styles.actionText}>Reschedule</Text>
+          </Pressable>
+        )}
+        {canCancel && (
+          <Pressable style={[styles.actionBtn, styles.actionDanger]} onPress={() => nav.navigate('CancelBooking', { booking })}>
+            <Ionicons name="close-circle-outline" size={18} color="#DC2626" />
+            <Text style={[styles.actionText, { color: '#DC2626' }]}>Cancel Booking</Text>
+          </Pressable>
+        )}
+        {canRate && (
+          <Pressable style={styles.actionBtn} onPress={() => nav.navigate('RateReview', { booking })}>
+            <Ionicons name="star-outline" size={18} color={BRAND.primary} />
+            <Text style={styles.actionText}>Rate & Review</Text>
+          </Pressable>
+        )}
       </View>
 
       {canDownloadInvoice ? (
@@ -135,6 +177,19 @@ const styles = StyleSheet.create({
   paymentCardLabel: { fontSize: 11, color: BRAND.muted, fontWeight: '600' },
   paymentCardValue: { fontSize: 16, fontWeight: '800', marginTop: 2 },
   paymentCardSub: { fontSize: 12, color: BRAND.muted, marginTop: 2, fontWeight: '600' },
+  actions: { gap: 8, marginTop: 6, marginBottom: 4 },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: BRAND.canvas,
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: BRAND.border,
+  },
+  actionDanger: { borderColor: '#FECACA', backgroundColor: '#FEF2F2' },
+  actionText: { fontSize: 14, fontWeight: '800', color: BRAND.ink },
   invoice: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 16, padding: 16, marginTop: 12 },
   invoiceText: { color: '#fff', fontWeight: '800', fontSize: 16 },
   invoiceSub: { color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: 2, fontWeight: '600' },

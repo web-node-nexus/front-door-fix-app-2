@@ -2,30 +2,37 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { BRAND } from '../../config';
 import KeyboardAwareScroll from '../../components/KeyboardAwareScroll';
 import KeyboardTextInput from '../../components/KeyboardTextInput';
+import { useFeedback } from '../../context/FeedbackContext';
 import { useScreenPadding } from '../../hooks/useScreenPadding';
 
 const CATEGORIES = ['Booking Issue', 'Payment Problem', 'Service Quality', 'Technician Delay', 'Other'];
 
 export default function RaiseTicketScreen() {
-  const nav = useNavigation();
+  const nav = useNavigation<any>();
   const pad = useScreenPadding();
+  const { showSuccess, showWarning } = useFeedback();
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
 
   const submit = () => {
     if (!subject.trim() || !description.trim()) {
-      Alert.alert('Missing info', 'Please enter subject and description');
+      showWarning('Missing info', 'Please enter subject and description');
       return;
     }
     const id = `TK${Math.floor(100000 + Math.random() * 900000)}`;
-    Alert.alert('Ticket Raised', `Your ticket #${id} has been submitted. We will respond within 2 hours.`, [
-      { text: 'OK', onPress: () => nav.goBack() },
-    ]);
+    showSuccess(
+      'Ticket raised',
+      `Your ticket #${id} has been submitted. We will respond within 2 hours.`,
+      [
+        { label: 'View Tickets', variant: 'primary', onPress: () => nav.navigate('SupportTickets') },
+        { label: 'Done', variant: 'ghost', onPress: () => nav.goBack() },
+      ],
+    );
   };
 
   return (

@@ -59,14 +59,24 @@ export default function ProfileScreen() {
   const go = (screen: string, params?: object) => nav.navigate(screen, params);
   const goBookings = (tab: string) => nav.navigate('Bookings', { tab });
 
-  const displayName = user?.name || 'Yashi Sachan';
-  const displayPhone = user?.phone || '+91 98765 43210';
-  const displayEmail = user?.email || 'yashi.sachan@example.com';
+  const displayName = user?.name || 'Customer';
+  const displayPhone = user?.phone || 'Add phone number';
+  const displayEmail = user?.email || '';
 
   const deleteAccount = () => {
     Alert.alert('Delete Account', 'This will permanently delete your account. Continue?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => Alert.alert('Request submitted', 'Our team will process your request within 48 hours.') },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          Alert.alert(
+            'Request submitted',
+            'Our team will process your deletion request within 48 hours. You will now be signed out.',
+            [{ text: 'OK', onPress: () => logout() }],
+          );
+        },
+      },
     ]);
   };
 

@@ -24,6 +24,18 @@ export function navigateToLiveTracking(booking: { id: number }) {
   } as never);
 }
 
+export function navigateToServices(params?: {
+  category?: string;
+  sort?: string;
+  maxPrice?: number | null;
+}) {
+  if (!navigationRef.isReady()) return;
+  navigationRef.navigate('Main' as never, {
+    screen: 'Services',
+    params: params || {},
+  } as never);
+}
+
 export function navigateToRateReview(booking: { id: number; booking_code?: string; service?: string; professional?: string }) {
   if (!navigationRef.isReady()) return;
   navigationRef.navigate('Main' as never, {

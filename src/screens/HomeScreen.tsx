@@ -23,6 +23,7 @@ import { useLocation } from '../context/LocationContext';
 import { useNotifications } from '../context/NotificationContext';
 import { OFFERS, REVIEWS, WHY_CHOOSE } from '../data/mock';
 import { useScreenPadding } from '../hooks/useScreenPadding';
+import { navigateToServices } from '../navigation/navigationRef';
 import { categoryIcon, categoryImageUrl } from '../utils/serviceImagery';
 
 export default function HomeScreen() {
@@ -43,6 +44,10 @@ export default function HomeScreen() {
   });
 
   const filterCategories = ['All', ...categories.map((c) => c.slug)];
+
+  const goServices = useCallback((params?: { category?: string; sort?: string; maxPrice?: number | null }) => {
+    navigateToServices(params);
+  }, []);
 
   useEffect(() => {
     Promise.all([api.home(), api.services({ sort: 'popular' })])
@@ -102,7 +107,7 @@ export default function HomeScreen() {
 
       {/* Search */}
       <View style={styles.searchRow}>
-        <Pressable style={styles.searchBox} onPress={() => nav.navigate('Services')}>
+        <Pressable style={styles.searchBox} onPress={() => goServices()}>
           <Ionicons name="search" size={20} color={BRAND.muted} />
           <Text style={styles.searchPh}>Search for services...</Text>
         </Pressable>
@@ -114,7 +119,7 @@ export default function HomeScreen() {
       </View>
 
       {/* Hero */}
-      <Pressable onPress={() => nav.navigate('Services', { category: 'ac-service' })}>
+      <Pressable onPress={() => goServices({ category: 'ac-repair' })}>
         <LinearGradient colors={[BRAND.primary, '#C026D3']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
           <View style={styles.heroBadge}><Text style={styles.heroBadgeText}>SUMMER DEAL</Text></View>
           <Text style={styles.heroTitle}>Up to 20% OFF</Text>
@@ -127,7 +132,7 @@ export default function HomeScreen() {
       {/* Most Booked — website style */}
       <View style={styles.secHead}>
         <Text style={styles.secTitle}>Most Booked Services</Text>
-        <Pressable onPress={() => nav.navigate('Services')}><Text style={styles.secLink}>See All</Text></Pressable>
+        <Pressable onPress={() => goServices()}><Text style={styles.secLink}>See All</Text></Pressable>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.mostBookedRow}>
         {services.map((s) => (
@@ -142,18 +147,26 @@ export default function HomeScreen() {
       {/* Browse by Category — website style */}
       <View style={[styles.secHead, { marginTop: 24 }]}>
         <Text style={styles.secTitle}>Browse by Category</Text>
-        <Pressable onPress={() => nav.navigate('Services')}><Text style={styles.secLink}>View All</Text></Pressable>
+        <Pressable onPress={() => goServices()} hitSlop={8}>
+          <Text style={styles.secLink}>View All</Text>
+        </Pressable>
       </View>
       <View style={styles.catGrid}>
         {categories.slice(0, 6).map((cat) => (
           <Pressable
             key={cat.id}
-            style={styles.catCard}
-            onPress={() => nav.navigate('Services', { category: cat.slug })}
+            style={({ pressed }) => [styles.catCard, pressed && styles.catCardPressed]}
+            onPress={() => goServices({ category: cat.slug })}
+            android_ripple={{ color: 'rgba(255,255,255,0.2)' }}
           >
-            <Image source={{ uri: categoryImageUrl(cat.slug, cat.image) }} style={styles.catImage} resizeMode="cover" />
-            <View style={styles.catOverlay} />
-            <View style={styles.catInfo}>
+            <Image
+              source={{ uri: categoryImageUrl(cat.slug, cat.image) }}
+              style={styles.catImage}
+              resizeMode="cover"
+              pointerEvents="none"
+            />
+            <View style={styles.catOverlay} pointerEvents="none" />
+            <View style={styles.catInfo} pointerEvents="none">
               <Text style={styles.catEmoji}>{categoryIcon(cat.slug)}</Text>
               <Text style={styles.catName}>{cat.name}</Text>
             </View>
@@ -164,7 +177,7 @@ export default function HomeScreen() {
       {/* Popular Services Grid */}
       <View style={[styles.secHead, { marginTop: 24 }]}>
         <Text style={styles.secTitle}>Popular Services</Text>
-        <Pressable onPress={() => nav.navigate('Services')}><Text style={styles.secLink}>See All</Text></Pressable>
+        <Pressable onPress={() => goServices()}><Text style={styles.secLink}>See All</Text></Pressable>
       </View>
       <View style={styles.serviceGrid}>
         {gridServices.map((s) => (
@@ -192,14 +205,16 @@ export default function HomeScreen() {
       <Text style={[styles.secTitle, { marginTop: 24, marginBottom: 12 }]}>Featured Offers</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
         {OFFERS.map((o) => (
-          <LinearGradient key={o.title} colors={['#FDF4FF', '#F3E8FF']} style={styles.offerCard}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.offerTag}>{o.title}</Text>
-              <Text style={styles.offerSub}>{o.sub}</Text>
-              <Text style={styles.offerCta}>{o.cta}</Text>
-            </View>
-            <Ionicons name="pricetag" size={36} color={BRAND.primary} />
-          </LinearGradient>
+          <Pressable key={o.title} onPress={() => nav.navigate('Offers')}>
+            <LinearGradient colors={['#FDF4FF', '#F3E8FF']} style={styles.offerCard}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.offerTag}>{o.title}</Text>
+                <Text style={styles.offerSub}>{o.sub}</Text>
+                <Text style={styles.offerCta}>{o.cta}</Text>
+              </View>
+              <Ionicons name="pricetag" size={36} color={BRAND.primary} />
+            </LinearGradient>
+          </Pressable>
         ))}
       </ScrollView>
 
@@ -229,7 +244,11 @@ export default function HomeScreen() {
         onApply={(f) => {
           setFilters(f);
           setFilterOpen(false);
-          nav.navigate('Services', f);
+          goServices({
+            category: f.category === 'All' ? undefined : f.category,
+            sort: f.sort,
+            maxPrice: f.maxPrice,
+          });
         }}
       />
     </ScrollView>
@@ -283,7 +302,9 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     overflow: 'hidden',
     position: 'relative',
+    backgroundColor: BRAND.ink,
   },
+  catCardPressed: { opacity: 0.88, transform: [{ scale: 0.98 }] },
   catImage: { width: '100%', height: '100%' },
   catOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(26,26,46,0.45)' },
   catInfo: { position: 'absolute', bottom: 12, left: 12, right: 12 },

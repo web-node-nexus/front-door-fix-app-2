@@ -172,10 +172,10 @@ export function ActiveBookingProvider({ children }: { children: React.ReactNode 
     if (!user) {
       setLiveBooking(null);
       watchIdRef.current = null;
+      setLoading(false);
       await setWatchedBookingId(null);
       return;
     }
-    setLoading(true);
     try {
       const bookings = await api.bookings();
 
@@ -205,7 +205,19 @@ export function ActiveBookingProvider({ children }: { children: React.ReactNode 
         await setWatchedBookingId(null);
       }
 
-      setLiveBooking(live);
+      setLiveBooking((prev) => {
+        // Avoid re-render spam when payload is unchanged
+        if (
+          prev?.id === live?.id &&
+          prev?.workflow_stage === live?.workflow_stage &&
+          prev?.status === live?.status &&
+          prev?.professional === live?.professional &&
+          prev?.work_progress?.seconds_left === live?.work_progress?.seconds_left
+        ) {
+          return prev;
+        }
+        return live;
+      });
     } catch {
       // Keep last known state on network blip
     } finally {
@@ -215,7 +227,8 @@ export function ActiveBookingProvider({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     refresh();
-    const timer = setInterval(refresh, 3000);
+    // Poll less aggressively — frequent setState was making the UI feel like a reload.
+    const timer = setInterval(refresh, 8000);
     return () => clearInterval(timer);
   }, [refresh]);
 

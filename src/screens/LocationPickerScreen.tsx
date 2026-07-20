@@ -14,24 +14,19 @@ import {
 import MapView, { Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BRAND } from '../config';
-import { useLocation } from '../context/LocationContext';
+import { pincodeForCity, useLocation } from '../context/LocationContext';
 
-function formatAddress(place: Location.LocationGeocodedAddress): string {
-  const parts = [
-    place.name,
-    place.street,
-    place.district || place.subregion,
-    place.city || place.region,
-  ].filter(Boolean) as string[];
-
+function formatAddress(place: Location.LocationGeocodedAddress): { label: string; city: string; pincode: string } {
+  const city = place.city || place.subregion || place.district || place.region || 'Mumbai';
+  const area = place.name || place.street || place.district || '';
+  const labelParts = [area, city].filter(Boolean);
   const unique: string[] = [];
-  for (const part of parts) {
-    if (!unique.some((u) => u.toLowerCase() === part.toLowerCase())) {
-      unique.push(part);
-    }
+  for (const part of labelParts) {
+    if (!unique.some((u) => u.toLowerCase() === part.toLowerCase())) unique.push(part);
   }
-
-  return unique.slice(0, 2).join(', ') || 'Selected location';
+  const label = unique.join(', ') || city;
+  const pincode = place.postalCode?.trim() || pincodeForCity(city, label);
+  return { label, city, pincode };
 }
 
 export default function LocationPickerScreen() {
@@ -47,6 +42,8 @@ export default function LocationPickerScreen() {
     longitudeDelta: 0.012,
   });
   const [address, setAddress] = useState(location.label);
+  const [city, setCity] = useState(location.city);
+  const [pincode, setPincode] = useState(location.pincode);
   const [resolving, setResolving] = useState(false);
   const [locating, setLocating] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -56,7 +53,10 @@ export default function LocationPickerScreen() {
     try {
       const results = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
       if (results[0]) {
-        setAddress(formatAddress(results[0]));
+        const parsed = formatAddress(results[0]);
+        setAddress(parsed.label);
+        setCity(parsed.city);
+        setPincode(parsed.pincode);
       } else {
         setAddress(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
       }
@@ -112,6 +112,9 @@ export default function LocationPickerScreen() {
         latitude: region.latitude,
         longitude: region.longitude,
         label: address,
+        city,
+        pincode,
+        addressLine: location.addressLine,
       });
       nav.goBack();
     } finally {
@@ -168,9 +171,10 @@ export default function LocationPickerScreen() {
             {resolving ? (
               <ActivityIndicator color={BRAND.primary} style={{ alignSelf: 'flex-start', marginTop: 4 }} />
             ) : (
-              <Text style={styles.addressText} numberOfLines={2}>
-                {address}
-              </Text>
+              <>
+                <Text style={styles.addressText} numberOfLines={2}>{address}</Text>
+                <Text style={styles.metaText}>{city} · {pincode}</Text>
+              </>
             )}
           </View>
         </View>
@@ -288,6 +292,7 @@ const styles = StyleSheet.create({
   },
   addressLabel: { fontSize: 12, color: BRAND.muted },
   addressText: { fontSize: 16, fontWeight: '700', color: BRAND.ink, marginTop: 2 },
+  metaText: { fontSize: 12, color: BRAND.muted, marginTop: 4, fontWeight: '600' },
   confirmBtn: {
     height: 52,
     borderRadius: 16,

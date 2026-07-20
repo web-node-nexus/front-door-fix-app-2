@@ -175,7 +175,7 @@ function networkErrorMessage(tried: string[]): string {
 function apiErrorMessage(body: Record<string, unknown>, fallback: string): string {
   const errors = body?.errors;
   if (errors && typeof errors === 'object') {
-    for (const field of ['name', 'phone', 'pincode', 'booking_date', 'time_slot', 'service_id', 'address', 'city', 'email', 'password']) {
+    for (const field of ['name', 'phone', 'pincode', 'booking_date', 'time_slot', 'service_id', 'address', 'city', 'email', 'password', 'payment_method']) {
       const msg = (errors as Record<string, string[]>)[field]?.[0];
       if (msg) return msg;
     }
@@ -409,8 +409,8 @@ export const api = {
   },
   updateProfile: (payload: { name: string; phone?: string }) =>
     request<{ success: boolean; message: string; user: User }>(
-      '/user',
-      { method: 'PATCH', body: JSON.stringify(payload) },
+      '/user/profile',
+      { method: 'POST', body: JSON.stringify(payload) },
       true,
     ),
   uploadAvatar: (photo: { uri: string; name: string; type: string }) => uploadAvatarFile(photo),

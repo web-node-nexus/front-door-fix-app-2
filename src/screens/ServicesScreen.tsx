@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import React, { useEffect, useState } from 'react';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -35,6 +35,11 @@ function categoryDisplayName(name: string): string {
   return name;
 }
 
+function normalizeCategory(value?: string | null): string | null {
+  if (!value || value === 'All' || value === 'All Services') return null;
+  return value;
+}
+
 export default function ServicesScreen() {
   const nav = useNavigation<any>();
   const insets = useSafeAreaInsets();
@@ -43,10 +48,10 @@ export default function ServicesScreen() {
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
   const [services, setServices] = useState<Service[]>([]);
-  const [cat, setCat] = useState<string | null>(route.params?.category === 'All' ? null : route.params?.category || null);
+  const [cat, setCat] = useState<string | null>(normalizeCategory(route.params?.category));
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortOption | 'name'>(route.params?.sort || 'popular');
-  const maxPrice: number | null = route.params?.maxPrice ?? null;
+  const [maxPrice, setMaxPrice] = useState<number | null>(route.params?.maxPrice ?? null);
   const { favorites } = useProfile();
   const { itemCount } = useCart();
   const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -55,7 +60,17 @@ export default function ServicesScreen() {
     api.categories().then(setCategories).catch(() => setCategories([]));
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      const nextCat = normalizeCategory(route.params?.category);
+      setCat(nextCat);
+      if (route.params?.sort) setSort(route.params.sort);
+      if (route.params?.maxPrice !== undefined) setMaxPrice(route.params.maxPrice ?? null);
+    }, [route.params?.category, route.params?.sort, route.params?.maxPrice]),
+  );
+
   useEffect(() => {
+    let active = true;
     setLoading(true);
     const params: { category?: string; q?: string; sort?: string } = { sort };
     if (cat) params.category = cat;
@@ -63,14 +78,23 @@ export default function ServicesScreen() {
 
     api.services(params)
       .then((data) => {
+        if (!active) return;
         let result = data;
         if (maxPrice != null) {
           result = result.filter((s) => Number(s.price) <= maxPrice);
         }
         setServices(result);
       })
-      .catch(() => setServices([]))
-      .finally(() => setLoading(false));
+      .catch(() => {
+        if (active) setServices([]);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, [cat, search, sort, maxPrice]);
 
   if (loading && services.length === 0) {

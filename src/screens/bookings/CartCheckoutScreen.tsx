@@ -135,7 +135,7 @@ export default function CartCheckoutScreen() {
             pincode: pincode.trim(),
             booking_date: date,
             time_slot: slot,
-            payment_method: paymentMethod,
+            payment_method: paymentMethod === 'upi' ? 'upi' : 'cod',
           });
           lastBooking = res.booking;
           successCount += 1;
@@ -165,8 +165,9 @@ export default function CartCheckoutScreen() {
 
   const viewBooking = () => {
     if (!confirmedBooking) return;
+    const booking = confirmedBooking;
     setConfirmedBooking(null);
-    nav.navigate('LiveTracking', { booking: confirmedBooking });
+    nav.navigate('BookingDetail', { booking });
   };
 
   const viewAllBookings = () => {

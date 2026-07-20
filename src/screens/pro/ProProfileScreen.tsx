@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
   Pressable,
-  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -13,9 +11,11 @@ import { proApi } from '../../api/pro';
 import KeyboardAwareScroll from '../../components/KeyboardAwareScroll';
 import { BRAND } from '../../config';
 import { useAuth } from '../../context/AuthContext';
+import { useFeedback } from '../../context/FeedbackContext';
 
 export default function ProProfileScreen() {
   const { user, refreshProProfile } = useAuth();
+  const { showSuccess, showError, showWarning } = useFeedback();
   const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
   const [name, setName] = useState(user?.name ?? '');
   const [email, setEmail] = useState(user?.email ?? '');
@@ -52,7 +52,7 @@ export default function ProProfileScreen() {
 
   async function save() {
     if (!name.trim() || selectedCats.length === 0) {
-      Alert.alert('Missing info', 'Name and at least one service category are required.');
+      showWarning('Missing info', 'Name and at least one service category are required.');
       return;
     }
     setSaving(true);
@@ -69,9 +69,9 @@ export default function ProProfileScreen() {
         category_ids: selectedCats,
       });
       await refreshProProfile();
-      Alert.alert('Saved', 'Profile updated successfully.');
+      showSuccess('Profile saved', 'Your professional profile has been updated successfully.');
     } catch (e) {
-      Alert.alert('Failed', e instanceof Error ? e.message : 'Could not save');
+      showError('Save failed', e instanceof Error ? e.message : 'Could not save');
     } finally {
       setSaving(false);
     }

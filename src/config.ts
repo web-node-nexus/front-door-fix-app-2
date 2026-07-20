@@ -6,7 +6,8 @@ import Constants from 'expo-constants';
  *  - 'local' → local dev server on your machine (USB/WiFi + localhost)
  * Live build ke liye 'live' rakho, local development ke liye 'local'.
  */
-export const API_MODE: 'live' | 'local' = 'live';
+/** Dev builds use local Laravel; release builds use production. */
+export const API_MODE: 'live' | 'local' = __DEV__ ? 'local' : 'live';
 
 /** Production origin (no trailing slash). */
 export const LIVE_ORIGIN = 'https://frontdoorfix.in';
@@ -29,7 +30,7 @@ export function getDevHost(): string {
   return DEV_IP;
 }
 
-const API_PORT = 8002;
+const API_PORT = 8000;
 
 export function getApiBaseUrl(host = getDevHost()) {
   if (API_MODE === 'live') return `${LIVE_ORIGIN}/api`;

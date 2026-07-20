@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { BRAND } from '../../config';
+import { useFeedback } from '../../context/FeedbackContext';
 import { useProfile } from '../../context/ProfileContext';
 import { useScreenPadding } from '../../hooks/useScreenPadding';
 
@@ -11,10 +12,11 @@ const PERKS = ['Exclusive Offers', 'Priority Support', 'Special Discounts', 'Fre
 export default function SubscriptionScreen() {
   const pad = useScreenPadding();
   const { isPremium, upgradePremium } = useProfile();
+  const { showSuccess } = useFeedback();
 
   const upgrade = () => {
     upgradePremium();
-    Alert.alert('Premium Activated', 'Welcome to Front Door Premium! 🎉');
+    showSuccess('Premium Activated', 'Welcome to Front Door Premium. Enjoy exclusive benefits.');
   };
 
   return (

@@ -1,27 +1,38 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
 import React from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { BRAND } from '../../config';
+import { useFeedback } from '../../context/FeedbackContext';
 import { OFFERS } from '../../data/mock';
 import { useScreenPadding } from '../../hooks/useScreenPadding';
 
 export default function OffersScreen() {
+  const nav = useNavigation<any>();
   const pad = useScreenPadding();
+  const { showSuccess } = useFeedback();
+
+  const applyOffer = (title: string) => {
+    showSuccess(title, 'Offer saved. Choose a service to book with this deal.', [
+      { label: 'Book Now', variant: 'primary', onPress: () => nav.navigate('Services') },
+      { label: 'Later', variant: 'ghost' },
+    ]);
+  };
 
   return (
     <ScrollView contentContainerStyle={[styles.content, { paddingBottom: pad.paddingBottom }]}>
       {OFFERS.map((o) => (
-        <LinearGradient key={o.title} colors={['#FDF4FF', '#F3E8FF']} style={styles.card}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.tag}>{o.title}</Text>
-            <Text style={styles.sub}>{o.sub}</Text>
-            <Pressable onPress={() => Alert.alert(o.title, 'Offer applied to your next booking!')}>
+        <Pressable key={o.title} onPress={() => applyOffer(o.title)}>
+          <LinearGradient colors={['#FDF4FF', '#F3E8FF']} style={styles.card}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.tag}>{o.title}</Text>
+              <Text style={styles.sub}>{o.sub}</Text>
               <Text style={styles.cta}>{o.cta} →</Text>
-            </Pressable>
-          </View>
-          <Ionicons name="pricetag" size={36} color={BRAND.primary} />
-        </LinearGradient>
+            </View>
+            <Ionicons name="pricetag" size={36} color={BRAND.primary} />
+          </LinearGradient>
+        </Pressable>
       ))}
     </ScrollView>
   );

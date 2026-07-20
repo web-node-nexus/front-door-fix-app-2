@@ -5,6 +5,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BRAND } from '../config';
+import { navigateToServices } from '../navigation/navigationRef';
 
 const TABS: { name: string; label: string; icon: keyof typeof Ionicons.glyphMap; iconFocused: keyof typeof Ionicons.glyphMap }[] = [
   { name: 'Home', label: 'Home', icon: 'home-outline', iconFocused: 'home' },
@@ -17,8 +18,7 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
 
   const openServices = () => {
-    const parent = navigation.getParent();
-    if (parent) parent.navigate('Services' as never);
+    navigateToServices();
   };
 
   return (
@@ -68,13 +68,14 @@ const styles = StyleSheet.create({
   tab: { flex: 1, alignItems: 'center', gap: 2, paddingBottom: 4 },
   label: { fontSize: 10, fontWeight: '600', color: BRAND.light },
   labelActive: { color: BRAND.primary, fontWeight: '700' },
-  fabSlot: { flex: 1, alignItems: 'center', marginTop: -28 },
+  fabSlot: { flex: 1, alignItems: 'center', marginTop: -28, zIndex: 10 },
   fab: {
     width: 64,
     height: 64,
     borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 10,
     shadowColor: BRAND.primary,
     shadowOpacity: 0.35,
     shadowRadius: 12,

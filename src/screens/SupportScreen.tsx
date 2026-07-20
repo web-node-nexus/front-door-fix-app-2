@@ -90,7 +90,7 @@ export default function SupportScreen() {
             value={search}
             onChangeText={setSearch}
           />
-          <Pressable onPress={() => Alert.alert('Scan QR', 'Point camera at your booking QR code to get instant help for that service.')}>
+          <Pressable onPress={() => nav.navigate('ScanQr')} hitSlop={8}>
             <Ionicons name="qr-code-outline" size={22} color={BRAND.primary} />
           </Pressable>
         </View>

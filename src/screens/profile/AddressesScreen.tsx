@@ -1,27 +1,29 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { BRAND } from '../../config';
 import KeyboardAwareScroll from '../../components/KeyboardAwareScroll';
 import KeyboardTextInput from '../../components/KeyboardTextInput';
+import { useFeedback } from '../../context/FeedbackContext';
 import { useProfile } from '../../context/ProfileContext';
 import { useScreenPadding } from '../../hooks/useScreenPadding';
 
 export default function AddressesScreen() {
   const pad = useScreenPadding();
   const { addresses, addAddress } = useProfile();
+  const { showSuccess, showWarning } = useFeedback();
   const [label, setLabel] = useState('');
   const [line, setLine] = useState('');
 
   const handleAdd = () => {
     if (!label.trim() || !line.trim()) {
-      Alert.alert('Missing info', 'Please enter address label and full address');
+      showWarning('Missing info', 'Please enter address label and full address');
       return;
     }
     addAddress(label.trim(), line.trim());
     setLabel('');
     setLine('');
-    Alert.alert('Address saved', 'New address added successfully');
+    showSuccess('Address saved', 'New address added successfully.');
   };
 
   return (

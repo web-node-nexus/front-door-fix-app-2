@@ -3,7 +3,6 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useLayoutEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   StyleSheet,
   Text,
@@ -14,6 +13,7 @@ import KeyboardAwareScroll from '../../components/KeyboardAwareScroll';
 import KeyboardTextInput from '../../components/KeyboardTextInput';
 import { BRAND } from '../../config';
 import { useAuth } from '../../context/AuthContext';
+import { useFeedback } from '../../context/FeedbackContext';
 import { useScreenPadding } from '../../hooks/useScreenPadding';
 
 function InfoRow({ label, value }: { label: string; value: string }) {
@@ -30,6 +30,7 @@ export default function PersonalInfoScreen() {
   const route = useRoute<any>();
   const pad = useScreenPadding();
   const { user, updateProfile } = useAuth();
+  const { showSuccess, showError, showWarning } = useFeedback();
   const [editing, setEditing] = useState(Boolean(route.params?.edit));
   const [name, setName] = useState(user?.name || '');
   const [phone, setPhone] = useState(user?.phone || '');
@@ -73,7 +74,7 @@ export default function PersonalInfoScreen() {
   const save = async () => {
     const trimmedName = name.trim();
     if (!trimmedName) {
-      Alert.alert('Name required', 'Please enter your name.');
+      showWarning('Name required', 'Please enter your name.');
       return;
     }
 
@@ -84,9 +85,9 @@ export default function PersonalInfoScreen() {
         phone: phone.trim() || undefined,
       });
       setEditing(false);
-      Alert.alert('Saved', 'Your personal information has been updated.');
+      showSuccess('Profile saved', 'Your personal information has been updated successfully.');
     } catch (e) {
-      Alert.alert('Save failed', e instanceof Error ? e.message : 'Could not update profile.');
+      showError('Save failed', e instanceof Error ? e.message : 'Could not update profile.');
     } finally {
       setSaving(false);
     }

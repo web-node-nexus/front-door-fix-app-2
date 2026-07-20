@@ -1,10 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { api, Booking } from '../../api/client';
 import { BRAND } from '../../config';
+import { useFeedback } from '../../context/FeedbackContext';
 import { useScreenPadding } from '../../hooks/useScreenPadding';
 
 const REASONS = [
@@ -16,9 +16,10 @@ const REASONS = [
 ];
 
 export default function CancelBookingScreen() {
-  const nav = useNavigation();
+  const nav = useNavigation<any>();
   const route = useRoute<any>();
   const pad = useScreenPadding();
+  const { showSuccess, showError } = useFeedback();
   const booking: Booking = route.params?.booking;
   const [reason, setReason] = useState(REASONS[0]);
   const [cancelling, setCancelling] = useState(false);
@@ -36,11 +37,19 @@ export default function CancelBookingScreen() {
             setCancelling(true);
             try {
               await api.cancelBooking(booking.id);
-              Alert.alert('Cancelled', 'Your booking has been cancelled.', [
-                { text: 'OK', onPress: () => nav.navigate('Bookings' as never) },
+              showSuccess('Booking cancelled', 'Your booking has been cancelled successfully.', [
+                {
+                  label: 'View Cancelled',
+                  variant: 'primary',
+                  onPress: () =>
+                    nav.navigate('Tabs', {
+                      screen: 'Bookings',
+                      params: { tab: 'Cancelled' },
+                    }),
+                },
               ]);
             } catch (e) {
-              Alert.alert('Error', e instanceof Error ? e.message : 'Could not cancel booking');
+              showError('Cancel failed', e instanceof Error ? e.message : 'Could not cancel booking');
             } finally {
               setCancelling(false);
             }

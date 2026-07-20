@@ -19,8 +19,12 @@ export default function SplashScreen({ onFinish }: Props) {
   const exitOpacity = useRef(new Animated.Value(1)).current;
   const exitScale = useRef(new Animated.Value(1)).current;
 
+  const onFinishRef = useRef(onFinish);
+  onFinishRef.current = onFinish;
+
   useEffect(() => {
-    Animated.sequence([
+    // Run splash once — never restart when parent re-renders (auth/onboarding).
+    const anim = Animated.sequence([
       Animated.parallel([
         Animated.timing(fade, { toValue: 1, duration: 450, useNativeDriver: true }),
         Animated.spring(logoScale, { toValue: 1, friction: 7, tension: 70, useNativeDriver: true }),
@@ -36,8 +40,13 @@ export default function SplashScreen({ onFinish }: Props) {
         Animated.timing(exitOpacity, { toValue: 0, duration: 380, useNativeDriver: true }),
         Animated.timing(exitScale, { toValue: 1.04, duration: 380, useNativeDriver: true }),
       ]),
-    ]).start(onFinish);
-  }, [barWidth, exitOpacity, exitScale, fade, logoScale, logoY, onFinish, ringOpacity, ringScale, tagOpacity]);
+    ]);
+    anim.start(({ finished }) => {
+      if (finished) onFinishRef.current();
+    });
+    return () => anim.stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only
+  }, []);
 
   const progress = barWidth.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
 

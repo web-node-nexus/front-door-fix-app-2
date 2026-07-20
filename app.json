@@ -54,6 +54,12 @@
           "photosPermission": "Allow Front Door to access your photos to set a profile picture.",
           "cameraPermission": "Allow Front Door to use your camera to take a profile picture."
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Front Door to scan booking QR codes for instant support."
+        }
       ]
     ]
   }

@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { BRAND } from '../config';
 import { useAuth } from '../context/AuthContext';
+import { useFeedback } from '../context/FeedbackContext';
 import { userAvatarUrl } from '../utils/avatarUrl';
 import {
   pickProfilePhotoFromGallery,
@@ -20,6 +21,7 @@ type Props = {
 
 export default function ProfileAvatar({ name, avatar, size = 72, showCamera = true }: Props) {
   const { updateAvatar } = useAuth();
+  const { showSuccess, showError } = useFeedback();
   const [uploading, setUploading] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const photoUrl = userAvatarUrl(avatar);
@@ -39,9 +41,9 @@ export default function ProfileAvatar({ name, avatar, size = 72, showCamera = tr
     setUploading(true);
     try {
       await updateAvatar(picked);
-      Alert.alert('Photo updated', 'Your profile photo has been saved.');
+      showSuccess('Photo updated', 'Your profile photo has been saved successfully.');
     } catch (e) {
-      Alert.alert('Upload failed', e instanceof Error ? e.message : 'Could not update profile photo.');
+      showError('Upload failed', e instanceof Error ? e.message : 'Could not update profile photo.');
     } finally {
       setUploading(false);
     }

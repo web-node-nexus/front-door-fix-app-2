@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { BRAND } from '../../config';
+import { useFeedback } from '../../context/FeedbackContext';
 import { useProfile } from '../../context/ProfileContext';
 import { useScreenPadding } from '../../hooks/useScreenPadding';
 
@@ -14,6 +15,7 @@ const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 export default function PaymentMethodsScreen() {
   const pad = useScreenPadding();
   const { paymentMethods } = useProfile();
+  const { showSuccess } = useFeedback();
   const [active, setActive] = useState<Record<string, boolean>>(
     Object.fromEntries(paymentMethods.map((p) => [p.id, p.active])),
   );
@@ -34,8 +36,19 @@ export default function PaymentMethodsScreen() {
           />
         </View>
       ))}
-      <Pressable style={styles.manage} onPress={() => Alert.alert('Payment Methods', 'Your payment preferences have been saved.')}>
-        <Text style={styles.manageText}>Manage Payment Methods</Text>
+      <Pressable
+        style={styles.manage}
+        onPress={() => {
+          const enabled = paymentMethods.filter((p) => active[p.id]).map((p) => p.label);
+          showSuccess(
+            'Preferences saved',
+            enabled.length
+              ? `Active methods: ${enabled.join(', ')}`
+              : 'No payment methods are currently active.',
+          );
+        }}
+      >
+        <Text style={styles.manageText}>Save Payment Preferences</Text>
       </Pressable>
     </ScrollView>
   );

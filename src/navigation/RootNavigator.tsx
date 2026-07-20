@@ -31,6 +31,7 @@ import ServicePaymentScreen from '../screens/bookings/ServicePaymentScreen';
 import HomeScreen from '../screens/HomeScreen';
 
 import LocationPickerScreen from '../screens/LocationPickerScreen';
+import ScanQrScreen from '../screens/ScanQrScreen';
 
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
@@ -173,6 +174,7 @@ function AppStack() {
       />
 
       <MainStack.Screen name="LocationPicker" component={LocationPickerScreen} options={{ headerShown: false, presentation: 'modal' }} />
+      <MainStack.Screen name="ScanQr" component={ScanQrScreen} options={{ headerShown: false, presentation: 'fullScreenModal' }} />
 
       <MainStack.Screen
 
