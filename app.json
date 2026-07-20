@@ -5,11 +5,19 @@
     "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
+    },
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "in.frontdoorfix.app"
     },
     "android": {
+      "package": "in.frontdoorfix.app",
+      "versionCode": 1,
       "usesCleartextTraffic": true,
       "permissions": [
         "ACCESS_COARSE_LOCATION",
@@ -19,17 +27,18 @@
         "READ_EXTERNAL_STORAGE"
       ],
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "expo-splash-screen",
       "expo-secure-store",
       "expo-asset",
       "expo-font",

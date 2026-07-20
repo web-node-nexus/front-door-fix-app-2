@@ -1,5 +1,16 @@
 import Constants from 'expo-constants';
 
+/**
+ * API mode switch.
+ *  - 'live'  → production server (frontdoorfix.in)
+ *  - 'local' → local dev server on your machine (USB/WiFi + localhost)
+ * Live build ke liye 'live' rakho, local development ke liye 'local'.
+ */
+export const API_MODE: 'live' | 'local' = 'live';
+
+/** Production origin (no trailing slash). */
+export const LIVE_ORIGIN = 'https://frontdoorfix.in';
+
 // USB + adb reverse fallback
 export const DEV_IP = '127.0.0.1';
 
@@ -18,12 +29,32 @@ export function getDevHost(): string {
   return DEV_IP;
 }
 
+const API_PORT = 8002;
+
 export function getApiBaseUrl(host = getDevHost()) {
-  return `http://${host}:8000/api`;
+  if (API_MODE === 'live') return `${LIVE_ORIGIN}/api`;
+  return `http://${host}:${API_PORT}/api`;
 }
 
 export function getAssetBaseUrl(host = getDevHost()) {
-  return `http://${host}:8000`;
+  if (API_MODE === 'live') return LIVE_ORIGIN;
+  return `http://${host}:${API_PORT}`;
+}
+
+/**
+ * Ordered list of API base URLs to try. In live mode this is a single
+ * production URL; in local mode it tries localhost + LAN IP + emulator host.
+ */
+export function getApiBaseCandidates(): string[] {
+  if (API_MODE === 'live') return [`${LIVE_ORIGIN}/api`];
+
+  const hosts: string[] = [DEV_IP];
+  const devHost = getDevHost();
+  if (devHost && devHost !== DEV_IP && devHost !== 'localhost') {
+    hosts.push(devHost);
+  }
+  hosts.push('10.0.2.2'); // Android emulator
+  return [...new Set(hosts)].map((h) => getApiBaseUrl(h));
 }
 
 export const API_BASE_URL = getApiBaseUrl();

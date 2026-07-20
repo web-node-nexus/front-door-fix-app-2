@@ -9,11 +9,12 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { api, Booking, Service } from '../../api/client';
 import BookingSuccessModal from '../../components/BookingSuccessModal';
+import KeyboardAwareScroll from '../../components/KeyboardAwareScroll';
+import KeyboardTextInput from '../../components/KeyboardTextInput';
 import { BRAND } from '../../config';
 import { useActiveBooking } from '../../context/ActiveBookingContext';
 import { useLocation } from '../../context/LocationContext';
@@ -147,9 +148,10 @@ export default function BookServiceScreen() {
 
   return (
     <>
-    <ScrollView
-      style={styles.root}
+    <KeyboardAwareScroll
+      containerStyle={styles.root}
       contentContainerStyle={[styles.content, { paddingBottom: pad.paddingBottom }]}
+      extraScrollOffset={72}
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.serviceCard}>
@@ -184,7 +186,7 @@ export default function BookServiceScreen() {
 
       <View style={styles.field}>
         <Ionicons name="home-outline" size={18} color={BRAND.primary} />
-        <TextInput
+        <KeyboardTextInput
           style={styles.input}
           placeholder="Flat no., building, landmark (optional)"
           placeholderTextColor={BRAND.light}
@@ -195,7 +197,7 @@ export default function BookServiceScreen() {
       </View>
       <View style={styles.row}>
         <View style={[styles.field, styles.half]}>
-          <TextInput
+          <KeyboardTextInput
             style={styles.inputPlain}
             placeholder="City"
             placeholderTextColor={BRAND.light}
@@ -204,7 +206,7 @@ export default function BookServiceScreen() {
           />
         </View>
         <View style={[styles.field, styles.half]}>
-          <TextInput
+          <KeyboardTextInput
             style={styles.inputPlain}
             placeholder="Pincode"
             placeholderTextColor={BRAND.light}
@@ -285,7 +287,7 @@ export default function BookServiceScreen() {
           <Text style={styles.btnText}>{saving ? 'Booking...' : 'Confirm Booking'}</Text>
         </LinearGradient>
       </Pressable>
-    </ScrollView>
+    </KeyboardAwareScroll>
 
     <BookingSuccessModal
       visible={!!confirmedBooking}

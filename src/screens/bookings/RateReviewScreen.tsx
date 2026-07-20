@@ -4,17 +4,15 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useState } from 'react';
 import {
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, Booking } from '../../api/client';
+import KeyboardAwareScroll from '../../components/KeyboardAwareScroll';
+import KeyboardTextInput from '../../components/KeyboardTextInput';
 import { BRAND } from '../../config';
 import { useActiveBooking } from '../../context/ActiveBookingContext';
 import { useScreenPadding } from '../../hooks/useScreenPadding';
@@ -55,10 +53,7 @@ export default function RateReviewScreen() {
   const skip = () => nav.goBack();
 
   return (
-    <KeyboardAvoidingView
-      style={styles.root}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <View style={styles.root}>
       <LinearGradient colors={['#FFF5F9', BRAND.surface]} style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Pressable style={styles.closeBtn} onPress={skip}>
           <Ionicons name="close" size={22} color={BRAND.ink} />
@@ -73,9 +68,9 @@ export default function RateReviewScreen() {
         <Text style={styles.sub}>Your service is complete. Please rate {booking.professional || 'your service partner'}.</Text>
       </LinearGradient>
 
-      <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: pad.paddingBottom + 20 }]}
-        keyboardShouldPersistTaps="handled"
+      <KeyboardAwareScroll
+        contentContainerStyle={[styles.content, { paddingBottom: pad.paddingBottom }]}
+        extraScrollOffset={72}
       >
         <View style={styles.proCard}>
           <View style={styles.proAvatar}>
@@ -105,7 +100,7 @@ export default function RateReviewScreen() {
         )}
 
         <Text style={styles.commentLabel}>Share more (optional)</Text>
-        <TextInput
+        <KeyboardTextInput
           style={styles.commentInput}
           placeholder="Tell us what went well or what we can improve..."
           placeholderTextColor={BRAND.light}
@@ -126,8 +121,8 @@ export default function RateReviewScreen() {
         <Pressable style={styles.skipBtn} onPress={skip}>
           <Text style={styles.skipText}>Maybe later</Text>
         </Pressable>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAwareScroll>
+    </View>
   );
 }
 

@@ -5,13 +5,13 @@ import {
   ActivityIndicator,
   Alert,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import ProfileAvatar from '../../components/ProfileAvatar';
+import KeyboardAwareScroll from '../../components/KeyboardAwareScroll';
+import KeyboardTextInput from '../../components/KeyboardTextInput';
 import { BRAND } from '../../config';
 import { useAuth } from '../../context/AuthContext';
 import { useScreenPadding } from '../../hooks/useScreenPadding';
@@ -93,7 +93,10 @@ export default function PersonalInfoScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={[styles.content, { paddingBottom: pad.paddingBottom }]}>
+    <KeyboardAwareScroll
+      contentContainerStyle={[styles.content, { paddingBottom: pad.paddingBottom }]}
+      extraScrollOffset={72}
+    >
       <View style={styles.avatarSection}>
         <ProfileAvatar name={name || user?.name || 'User'} avatar={user?.avatar} size={96} />
         <Text style={styles.avatarHint}>Tap camera to take photo or choose from gallery</Text>
@@ -103,7 +106,7 @@ export default function PersonalInfoScreen() {
         <>
           <View style={styles.field}>
             <Text style={styles.label}>Name</Text>
-            <TextInput
+            <KeyboardTextInput
               style={styles.input}
               value={name}
               onChangeText={setName}
@@ -116,7 +119,7 @@ export default function PersonalInfoScreen() {
 
           <View style={styles.field}>
             <Text style={styles.label}>Phone</Text>
-            <TextInput
+            <KeyboardTextInput
               style={styles.input}
               value={phone}
               onChangeText={setPhone}
@@ -129,7 +132,7 @@ export default function PersonalInfoScreen() {
 
           <View style={styles.field}>
             <Text style={styles.label}>Email</Text>
-            <TextInput
+            <KeyboardTextInput
               style={[styles.input, styles.inputDisabled]}
               value={email}
               editable={false}
@@ -155,7 +158,7 @@ export default function PersonalInfoScreen() {
           <InfoRow label="Email" value={email || user?.email || ''} />
         </View>
       )}
-    </ScrollView>
+    </KeyboardAwareScroll>
   );
 }
 

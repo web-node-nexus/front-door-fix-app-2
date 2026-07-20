@@ -2,8 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { BRAND } from '../../config';
+import KeyboardAwareScroll from '../../components/KeyboardAwareScroll';
+import KeyboardTextInput from '../../components/KeyboardTextInput';
 import { useScreenPadding } from '../../hooks/useScreenPadding';
 
 const CATEGORIES = ['Booking Issue', 'Payment Problem', 'Service Quality', 'Technician Delay', 'Other'];
@@ -27,7 +29,7 @@ export default function RaiseTicketScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={[styles.content, { paddingBottom: pad.paddingBottom }]}>
+    <KeyboardAwareScroll contentContainerStyle={[styles.content, { paddingBottom: pad.paddingBottom }]} extraScrollOffset={72}>
       <Text style={styles.label}>Category</Text>
       <View style={styles.chips}>
         {CATEGORIES.map((c) => (
@@ -44,10 +46,10 @@ export default function RaiseTicketScreen() {
       </View>
 
       <Text style={styles.label}>Subject</Text>
-      <TextInput style={styles.input} placeholder="Brief description of issue" placeholderTextColor={BRAND.light} value={subject} onChangeText={setSubject} />
+      <KeyboardTextInput style={styles.input} placeholder="Brief description of issue" placeholderTextColor={BRAND.light} value={subject} onChangeText={setSubject} />
 
       <Text style={styles.label}>Description</Text>
-      <TextInput style={[styles.input, styles.area]} placeholder="Describe your issue in detail..." placeholderTextColor={BRAND.light} value={description} onChangeText={setDescription} multiline />
+      <KeyboardTextInput style={[styles.input, styles.area]} placeholder="Describe your issue in detail..." placeholderTextColor={BRAND.light} value={description} onChangeText={setDescription} multiline />
 
       <Pressable onPress={submit}>
         <LinearGradient colors={[BRAND.primary, BRAND.purple]} style={styles.btn}>
@@ -55,7 +57,7 @@ export default function RaiseTicketScreen() {
           <Text style={styles.btnText}>Submit Ticket</Text>
         </LinearGradient>
       </Pressable>
-    </ScrollView>
+    </KeyboardAwareScroll>
   );
 }
 

@@ -8,12 +8,13 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, Booking } from '../../api/client';
 import BookingSuccessModal from '../../components/BookingSuccessModal';
+import KeyboardAwareScroll from '../../components/KeyboardAwareScroll';
+import KeyboardTextInput from '../../components/KeyboardTextInput';
 import { BRAND } from '../../config';
 import { useActiveBooking } from '../../context/ActiveBookingContext';
 import { useCart } from '../../context/CartContext';
@@ -183,9 +184,10 @@ export default function CartCheckoutScreen() {
         <View style={styles.headerSpacer} />
       </View>
 
-      <ScrollView
-        style={styles.root}
+      <KeyboardAwareScroll
+        containerStyle={styles.root}
         contentContainerStyle={[styles.content, { paddingBottom: pad.paddingBottom }]}
+        extraScrollOffset={72}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.cartSummary}>
@@ -222,7 +224,7 @@ export default function CartCheckoutScreen() {
 
         <View style={styles.field}>
           <Ionicons name="home-outline" size={18} color={BRAND.primary} />
-          <TextInput
+          <KeyboardTextInput
             style={styles.input}
             placeholder="Flat no., building, landmark (optional)"
             placeholderTextColor={BRAND.light}
@@ -233,7 +235,7 @@ export default function CartCheckoutScreen() {
         </View>
         <View style={styles.row}>
           <View style={[styles.field, styles.half]}>
-            <TextInput
+            <KeyboardTextInput
               style={styles.inputPlain}
               placeholder="City"
               placeholderTextColor={BRAND.light}
@@ -242,7 +244,7 @@ export default function CartCheckoutScreen() {
             />
           </View>
           <View style={[styles.field, styles.half]}>
-            <TextInput
+            <KeyboardTextInput
               style={styles.inputPlain}
               placeholder="Pincode"
               placeholderTextColor={BRAND.light}
@@ -322,7 +324,7 @@ export default function CartCheckoutScreen() {
             </Text>
           </LinearGradient>
         </Pressable>
-      </ScrollView>
+      </KeyboardAwareScroll>
 
       <BookingSuccessModal
         visible={!!confirmedBooking}

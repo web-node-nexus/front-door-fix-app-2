@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Service } from '../api/client';
@@ -9,52 +10,91 @@ type Props = {
   onPress?: () => void;
 };
 
+/** Compact horizontal card for "Most Booked" carousel */
 export default function HomeServiceCard({ service, onPress }: Props) {
+  const price = Number(service.price).toLocaleString('en-IN');
+
   return (
-    <Pressable style={styles.card} onPress={onPress}>
-      <View style={styles.imageWrap}>
-        <Image source={{ uri: serviceImageUrl(service) }} style={styles.image} resizeMode="cover" />
-      </View>
-      <Text style={styles.name} numberOfLines={2}>{service.name}</Text>
-      <Text style={styles.category}>{service.category?.name || 'Service'}</Text>
-      <View style={styles.tags}>
-        <View style={styles.durationTag}>
-          <Text style={styles.durationText}>{durationLabel(service.duration_hours)}</Text>
+    <Pressable style={({ pressed }) => [styles.card, pressed && styles.pressed]} onPress={onPress}>
+      <Image source={{ uri: serviceImageUrl(service) }} style={styles.image} resizeMode="cover" />
+      <View style={styles.body}>
+        <Text style={styles.name} numberOfLines={1}>{service.name}</Text>
+        <Text style={styles.meta} numberOfLines={1}>
+          {service.category?.name || 'Service'} · {durationLabel(service.duration_hours)}
+        </Text>
+        <View style={styles.footer}>
+          <Text style={styles.price}>₹{price}</Text>
+          <View style={styles.rating}>
+            <Ionicons name="star" size={11} color="#F59E0B" />
+            <Text style={styles.ratingText}>4.8</Text>
+          </View>
         </View>
-        <Text style={styles.rating}>⭐ 4.8</Text>
       </View>
-      <Text style={styles.price}>₹{Number(service.price).toLocaleString('en-IN')}</Text>
-      {service.bookings_count != null && service.bookings_count > 0 && (
-        <Text style={styles.bookings}>{service.bookings_count}+ bookings</Text>
-      )}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    width: 200,
-    backgroundColor: BRAND.canvas,
-    borderRadius: 20,
-    padding: 16,
+    width: 248,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 10,
+    marginRight: 10,
     borderWidth: 1,
-    borderColor: BRAND.border,
-    marginRight: 12,
+    borderColor: '#ECECF2',
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  imageWrap: {
-    height: 100,
-    borderRadius: 16,
-    overflow: 'hidden',
+  pressed: { opacity: 0.94, transform: [{ scale: 0.99 }] },
+  image: {
+    width: 72,
+    height: 72,
+    borderRadius: 12,
     backgroundColor: BRAND.lavender,
-    marginBottom: 12,
   },
-  image: { width: '100%', height: '100%' },
-  name: { fontSize: 14, fontWeight: '800', color: BRAND.ink, textAlign: 'center' },
-  category: { fontSize: 11, color: BRAND.muted, textAlign: 'center', marginTop: 4 },
-  tags: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 10 },
-  durationTag: { backgroundColor: BRAND.lavender, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  durationText: { fontSize: 11, fontWeight: '700', color: BRAND.primary },
-  rating: { fontSize: 11, fontWeight: '700', color: '#D97706' },
-  price: { fontSize: 16, fontWeight: '800', color: BRAND.primary, textAlign: 'center', marginTop: 10 },
-  bookings: { fontSize: 10, color: BRAND.muted, textAlign: 'center', marginTop: 4 },
+  body: { flex: 1, minWidth: 0 },
+  name: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: BRAND.ink,
+    lineHeight: 18,
+  },
+  meta: {
+    fontSize: 11,
+    color: BRAND.muted,
+    marginTop: 3,
+    fontWeight: '500',
+  },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  price: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: BRAND.primary,
+  },
+  rating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#FFFBEB',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  ratingText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#B45309',
+  },
 });

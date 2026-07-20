@@ -70,6 +70,17 @@ export default function ProfileScreen() {
     ]);
   };
 
+  const confirmLogout = () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to sign out of your account?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Logout', style: 'destructive', onPress: () => logout() },
+      ],
+    );
+  };
+
   return (
     <ScrollView
       style={styles.root}
@@ -239,7 +250,7 @@ export default function ProfileScreen() {
       </LinearGradient>
 
       {/* Logout */}
-      <Pressable style={styles.logoutCard} onPress={logout}>
+      <Pressable style={styles.logoutCard} onPress={confirmLogout}>
         <View style={[styles.quickIcon, { backgroundColor: '#FCE7F3' }]}>
           <Ionicons name="log-out-outline" size={20} color={BRAND.primary} />
         </View>

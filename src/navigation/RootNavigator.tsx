@@ -7,7 +7,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import React from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { View } from 'react-native';
 
 import ActiveBookingBanner from '../components/ActiveBookingBanner';
 import CustomTabBar from '../components/CustomTabBar';
@@ -34,6 +34,9 @@ import LocationPickerScreen from '../screens/LocationPickerScreen';
 
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
+import ProLoginScreen from '../screens/pro/ProLoginScreen';
+import ProRegisterScreen from '../screens/pro/ProRegisterScreen';
+import ProNavigator from './ProNavigator';
 
 import NotificationsScreen from '../screens/NotificationsScreen';
 
@@ -301,30 +304,45 @@ function AppStack() {
 
 export default function RootNavigator() {
 
-  const { user, loading } = useAuth();
+  const { isAuthenticated, isProfessional } = useAuth();
 
-  if (loading) {
-    return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: BRAND.canvas }}>
-        <ActivityIndicator size="large" color={BRAND.primary} />
-      </View>
-    );
-  }
+  const stackKey = isAuthenticated ? (isProfessional ? 'pro' : 'customer') : 'auth';
 
   return (
 
     <NavigationContainer ref={navigationRef}>
 
-      <RootStack.Navigator screenOptions={{ headerShown: false }}>
+      <RootStack.Navigator
+        key={stackKey}
+        screenOptions={{ headerShown: false }}
+      >
 
-        {user ? (
+        {isAuthenticated ? (
 
-          <RootStack.Screen name="Main" component={AppStack} />
+          isProfessional ? (
+            <RootStack.Screen name="ProMain" component={ProNavigator} />
+          ) : (
+            <RootStack.Screen name="Main" component={AppStack} />
+          )
 
         ) : (
           <>
             <RootStack.Screen name="Login" component={LoginScreen} />
-            <RootStack.Screen name="Register" component={RegisterScreen} />
+            <RootStack.Screen
+              name="Register"
+              component={RegisterScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
+            <RootStack.Screen
+              name="ProLogin"
+              component={ProLoginScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
+            <RootStack.Screen
+              name="ProRegister"
+              component={ProRegisterScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
           </>
         )}
 

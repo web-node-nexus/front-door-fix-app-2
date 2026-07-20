@@ -129,7 +129,7 @@ export default function HomeScreen() {
         <Text style={styles.secTitle}>Most Booked Services</Text>
         <Pressable onPress={() => nav.navigate('Services')}><Text style={styles.secLink}>See All</Text></Pressable>
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 16 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.mostBookedRow}>
         {services.map((s) => (
           <HomeServiceCard
             key={s.id}
@@ -275,6 +275,7 @@ const styles = StyleSheet.create({
   secHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   secTitle: { fontSize: 18, fontWeight: '800', color: BRAND.ink },
   secLink: { color: BRAND.primary, fontWeight: '600', fontSize: 14 },
+  mostBookedRow: { paddingRight: 4, paddingBottom: 2 },
   catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   catCard: {
     width: (Dimensions.get('window').width - 52) / 2,
@@ -288,7 +289,7 @@ const styles = StyleSheet.create({
   catInfo: { position: 'absolute', bottom: 12, left: 12, right: 12 },
   catEmoji: { fontSize: 20, marginBottom: 4 },
   catName: { color: '#fff', fontSize: 15, fontWeight: '800' },
-  serviceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  serviceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   whyCard: { width: 130, backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: 20, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)' },
   whyIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: BRAND.lavender, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   whyTitle: { fontSize: 12, fontWeight: '700', color: BRAND.ink },

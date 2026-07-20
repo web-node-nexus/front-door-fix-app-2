@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { BRAND } from '../../config';
+import KeyboardAwareScroll from '../../components/KeyboardAwareScroll';
+import KeyboardTextInput from '../../components/KeyboardTextInput';
 import { useProfile } from '../../context/ProfileContext';
 import { useScreenPadding } from '../../hooks/useScreenPadding';
 
@@ -23,7 +25,10 @@ export default function AddressesScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={[styles.content, { paddingBottom: pad.paddingBottom }]}>
+    <KeyboardAwareScroll
+      contentContainerStyle={[styles.content, { paddingBottom: pad.paddingBottom }]}
+      extraScrollOffset={72}
+    >
       {addresses.map((a) => (
         <View key={a.id} style={styles.card}>
           <View style={styles.cardHead}>
@@ -36,13 +41,13 @@ export default function AddressesScreen() {
       ))}
 
       <Text style={styles.addTitle}>Add New Address</Text>
-      <TextInput style={styles.input} placeholder="Label (Home, Office...)" placeholderTextColor={BRAND.light} value={label} onChangeText={setLabel} />
-      <TextInput style={[styles.input, styles.textArea]} placeholder="Full address" placeholderTextColor={BRAND.light} value={line} onChangeText={setLine} multiline />
+      <KeyboardTextInput style={styles.input} placeholder="Label (Home, Office...)" placeholderTextColor={BRAND.light} value={label} onChangeText={setLabel} />
+      <KeyboardTextInput style={[styles.input, styles.textArea]} placeholder="Full address" placeholderTextColor={BRAND.light} value={line} onChangeText={setLine} multiline />
       <Pressable style={styles.btn} onPress={handleAdd}>
         <Ionicons name="add-circle-outline" size={20} color="#fff" />
         <Text style={styles.btnText}>Add New Address</Text>
       </Pressable>
-    </ScrollView>
+    </KeyboardAwareScroll>
   );
 }
 

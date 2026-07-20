@@ -1,8 +1,25 @@
 import * as SecureStore from 'expo-secure-store';
 
-import { API_BASE_URL, DEV_IP, getApiBaseUrl, getDevHost } from '../config';
+import { API_BASE_URL, getApiBaseCandidates } from '../config';
+import { proApi } from './pro';
+
+export { proApi };
 
 const TOKEN_KEY = 'frontdoor_token';
+
+export type ProfessionalProfile = {
+  approval_status: string;
+  is_verified: boolean;
+  is_available: boolean;
+  city?: string;
+  address?: string;
+  pincode?: string;
+  bio?: string;
+  rating: number;
+  total_jobs: number;
+  wallet_balance?: number;
+  category_ids?: number[];
+};
 
 export type User = {
   id: number;
@@ -11,6 +28,37 @@ export type User = {
   phone?: string;
   avatar?: string | null;
   roles?: string[];
+  professional?: ProfessionalProfile | null;
+};
+
+export function isProfessionalUser(user: User | null): boolean {
+  return !!user?.roles?.includes('professional');
+}
+
+export type ProStats = {
+  new_requests: number;
+  accepted_jobs: number;
+  in_progress: number;
+  awaiting_payment: number;
+  completed_jobs: number;
+  today_earnings: number;
+  monthly_earnings: number;
+  wallet_balance: number;
+  cash_pending: number;
+  requests_blocked?: boolean;
+};
+
+export type ProRequest = {
+  id: number;
+  service?: string;
+  customer?: string;
+  address?: string;
+  pincode?: string;
+  date?: string;
+  time_slot?: string;
+  distance?: string;
+  earnings?: number;
+  expires_at?: number;
 };
 
 export type Service = {
@@ -89,20 +137,29 @@ async function getToken(): Promise<string | null> {
 export async function setToken(token: string | null): Promise<void> {
   if (token) {
     await SecureStore.setItemAsync(TOKEN_KEY, token);
-  } else {
+    return;
+  }
+
+  try {
     await SecureStore.deleteItemAsync(TOKEN_KEY);
+  } catch {
+    // Continue — still attempt overwrite below
+  }
+
+  // Some devices fail deleteItemAsync; overwrite then delete again
+  try {
+    const leftover = await SecureStore.getItemAsync(TOKEN_KEY);
+    if (leftover) {
+      await SecureStore.setItemAsync(TOKEN_KEY, '');
+      await SecureStore.deleteItemAsync(TOKEN_KEY);
+    }
+  } catch {
+    // Best-effort clear
   }
 }
 
 function apiBaseCandidates(): string[] {
-  // USB (adb reverse) + WiFi — 127.0.0.1 pehle, phir PC ka LAN IP
-  const hosts: string[] = [DEV_IP];
-  const devHost = getDevHost();
-  if (devHost && devHost !== DEV_IP && devHost !== 'localhost') {
-    hosts.push(devHost);
-  }
-  hosts.push('10.0.2.2'); // Android emulator
-  return [...new Set(hosts)].map((h) => getApiBaseUrl(h));
+  return getApiBaseCandidates();
 }
 
 function networkErrorMessage(tried: string[]): string {
@@ -310,10 +367,39 @@ export const api = {
     }
     return data;
   },
+  registerProfessional: async (payload: {
+    name: string;
+    email: string;
+    phone: string;
+    password: string;
+    password_confirmation: string;
+    city: string;
+    address: string;
+    pincode: string;
+    bio?: string;
+    experience_years: number;
+  }) => {
+    const data = await request<{ token: string; user: User; message?: string }>(
+      '/register/professional',
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      },
+    );
+    try {
+      await setToken(data.token);
+    } catch {
+      // Token save fail shouldn't block register session in memory
+    }
+    return data;
+  },
+  proProfile: () => request<User>('/pro/profile', {}, true),
+  proStats: () => request<ProStats>('/pro/stats', {}, true),
+  proRequests: () => request<{ requests: ProRequest[] }>('/pro/requests', {}, true),
   logout: async () => setToken(null),
   restoreSession: async (): Promise<User | null> => {
     const token = await getToken();
-    if (!token) return null;
+    if (!token?.trim()) return null;
     try {
       return await request<User>('/user', {}, true);
     } catch {
