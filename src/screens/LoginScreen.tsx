@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import {
   Alert,
   Image,
+  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -19,24 +20,37 @@ import KeyboardAwareScroll from '../components/KeyboardAwareScroll';
 import { AUTH_LOGIN_IMAGE, LOGO } from '../constants/assets';
 import { BRAND } from '../config';
 import { useAuth } from '../context/AuthContext';
+import {
+  AppLanguage,
+  languageLabel,
+  LANGUAGES,
+  useLocale,
+} from '../context/LocaleContext';
 
 export default function LoginScreen() {
   const navigation = useNavigation();
   const { login, submitting } = useAuth();
+  const { language, setLanguage, t } = useLocale();
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
+
+  async function applyLanguage(code: AppLanguage) {
+    setLangOpen(false);
+    await setLanguage(code);
+  }
 
   async function handleLogin() {
     if (!email.trim() || !password) {
-      Alert.alert('Missing fields', 'Please enter email and password');
+      Alert.alert(t('login.missingTitle'), t('login.missingBody'));
       return;
     }
     try {
       await login(email.trim(), password);
     } catch (e) {
-      Alert.alert('Login failed', e instanceof Error ? e.message : 'Please try again');
+      Alert.alert(t('login.failedTitle'), e instanceof Error ? e.message : t('login.failedBody'));
     }
   }
 
@@ -48,97 +62,130 @@ export default function LoginScreen() {
         containerStyle={styles.flex}
         contentContainerStyle={[
           styles.scroll,
-          { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 24 },
+          { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 },
         ]}
         extraScrollOffset={72}
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
-          <View style={styles.logoRow}>
-            <Image source={LOGO} style={styles.logo} resizeMode="contain" />
-            <Text style={styles.tagline}>Premium home services at your doorstep</Text>
+        <View style={styles.topBar}>
+          <View style={{ flex: 1 }} />
+          <Pressable style={styles.langChip} onPress={() => setLangOpen(true)} hitSlop={8}>
+            <Ionicons name="language-outline" size={16} color={BRAND.primary} />
+            <Text style={styles.langChipText}>{languageLabel(language)}</Text>
+            <Ionicons name="chevron-down" size={14} color={BRAND.muted} />
+          </Pressable>
+        </View>
+
+        <View style={styles.logoRow}>
+          <Image source={LOGO} style={styles.logo} resizeMode="contain" />
+          <Text style={styles.tagline}>{t('login.tagline')}</Text>
+        </View>
+
+        <AuthCard heroImage={AUTH_LOGIN_IMAGE} heroBadge={`⚡ ${t('login.heroBadge')}`}>
+          <AuthTitle title={t('login.title')} subtitle={t('login.subtitle')} />
+
+          <AuthInput
+            label={t('login.email')}
+            icon="person-outline"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoComplete="email"
+            placeholder="you@email.com"
+          />
+          <AuthInput
+            label={t('login.password')}
+            icon="lock-closed-outline"
+            value={password}
+            onChangeText={setPassword}
+            secure={!showPass}
+            showToggle
+            onToggle={() => setShowPass((v) => !v)}
+            autoComplete="password"
+            placeholder={t('login.passwordPlaceholder')}
+          />
+
+          <AuthButton label={t('login.button')} onPress={handleLogin} loading={submitting} />
+
+          <View style={styles.registerRow}>
+            <Text style={styles.registerHint}>{t('login.noAccount')}</Text>
+            <Pressable onPress={() => navigation.navigate('Register' as never)}>
+              <Text style={styles.registerLink}>{t('login.signUp')}</Text>
+            </Pressable>
           </View>
 
-          <AuthCard heroImage={AUTH_LOGIN_IMAGE} heroBadge="⚡ Quick response">
-            <AuthTitle
-              title="Login"
-              subtitle="Sign in to book services, track bookings, and manage your account."
-            />
-
-            <AuthInput
-              label="Email or phone"
-              icon="person-outline"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoComplete="email"
-              placeholder="you@email.com"
-            />
-            <AuthInput
-              label="Password"
-              icon="lock-closed-outline"
-              value={password}
-              onChangeText={setPassword}
-              secure={!showPass}
-              showToggle
-              onToggle={() => setShowPass((v) => !v)}
-              autoComplete="password"
-              placeholder="Enter password"
-            />
-
-            <AuthButton label="Login" onPress={handleLogin} loading={submitting} />
-
-            <View style={styles.registerRow}>
-              <Text style={styles.registerHint}>Don't have an account?</Text>
-              <Pressable onPress={() => navigation.navigate('Register' as never)}>
-                <Text style={styles.registerLink}>Sign up</Text>
-              </Pressable>
-            </View>
-
-            <View style={styles.proDivider}>
-              <View style={styles.proDividerLine} />
-              <Text style={styles.proDividerText}>or</Text>
-              <View style={styles.proDividerLine} />
-            </View>
-
-            <View style={styles.proRow}>
-              <Pressable
-                style={styles.proBtn}
-                onPress={() => navigation.navigate('ProLogin' as never)}
-              >
-                <Ionicons name="briefcase-outline" size={16} color="#1A1A2E" />
-                <Text style={styles.proBtnText}>Professional Login</Text>
-              </Pressable>
-              <Pressable onPress={() => navigation.navigate('ProRegister' as never)}>
-                <Text style={styles.proLink}>Join as Pro</Text>
-              </Pressable>
-            </View>
-          </AuthCard>
-
-          <View style={styles.demoBox}>
-            <View style={styles.demoIcon}>
-              <Ionicons name="shield-checkmark" size={16} color="#fff" />
-            </View>
-            <View style={styles.demoTextWrap}>
-              <Text style={styles.demoTitle}>Demo account</Text>
-              <Text style={styles.demoText}>customer@frontdoor.in · password</Text>
-            </View>
+          <View style={styles.proDivider}>
+            <View style={styles.proDividerLine} />
+            <Text style={styles.proDividerText}>{t('login.or')}</Text>
+            <View style={styles.proDividerLine} />
           </View>
 
-          <View style={styles.trustRow}>
-            {[
-              { icon: 'shield-outline' as const, label: 'Secure' },
-              { icon: 'calendar-outline' as const, label: 'Quick booking' },
-              { icon: 'checkmark-circle-outline' as const, label: 'Verified' },
-              { icon: 'headset-outline' as const, label: '24/7 support' },
-            ].map((t) => (
-              <View key={t.label} style={styles.trustItem}>
-                <Ionicons name={t.icon} size={16} color={BRAND.primary} />
-                <Text style={styles.trustLabel}>{t.label}</Text>
-              </View>
-            ))}
+          <View style={styles.proRow}>
+            <Pressable
+              style={styles.proBtn}
+              onPress={() => navigation.navigate('ProLogin' as never)}
+            >
+              <Ionicons name="briefcase-outline" size={16} color="#1A1A2E" />
+              <Text style={styles.proBtnText}>{t('login.proLogin')}</Text>
+            </Pressable>
+            <Pressable onPress={() => navigation.navigate('ProRegister' as never)}>
+              <Text style={styles.proLink}>{t('login.joinPro')}</Text>
+            </Pressable>
           </View>
+        </AuthCard>
+
+        <View style={styles.demoBox}>
+          <View style={styles.demoIcon}>
+            <Ionicons name="shield-checkmark" size={16} color="#fff" />
+          </View>
+          <View style={styles.demoTextWrap}>
+            <Text style={styles.demoTitle}>{t('login.demoTitle')}</Text>
+            <Text style={styles.demoText}>customer@frontdoor.in · password</Text>
+          </View>
+        </View>
+
+        <View style={styles.trustRow}>
+          {[
+            { icon: 'shield-outline' as const, label: t('login.trust.secure') },
+            { icon: 'calendar-outline' as const, label: t('login.trust.booking') },
+            { icon: 'checkmark-circle-outline' as const, label: t('login.trust.verified') },
+            { icon: 'headset-outline' as const, label: t('login.trust.support') },
+          ].map((item) => (
+            <View key={item.label} style={styles.trustItem}>
+              <Ionicons name={item.icon} size={16} color={BRAND.primary} />
+              <Text style={styles.trustLabel}>{item.label}</Text>
+            </View>
+          ))}
+        </View>
       </KeyboardAwareScroll>
+
+      <Modal visible={langOpen} transparent animationType="fade" onRequestClose={() => setLangOpen(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setLangOpen(false)}>
+          <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.modalTitle}>{t('settings.language')}</Text>
+            {LANGUAGES.map((lang) => {
+              const active = language === lang.code;
+              return (
+                <Pressable
+                  key={lang.code}
+                  style={[styles.langRow, active && styles.langRowActive]}
+                  onPress={() => applyLanguage(lang.code)}
+                >
+                  <View>
+                    <Text style={[styles.langLabel, active && styles.langLabelActive]}>{lang.native}</Text>
+                    <Text style={styles.langSub}>{lang.label}</Text>
+                  </View>
+                  {active ? <Text style={styles.check}>✓</Text> : null}
+                </Pressable>
+              );
+            })}
+            <Pressable style={styles.modalCancel} onPress={() => setLangOpen(false)}>
+              <Text style={styles.modalCancelText}>{t('common.cancel')}</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -149,6 +196,27 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: 20,
     flexGrow: 1,
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  langChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: 'rgba(255,45,122,0.18)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  langChipText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: BRAND.ink,
   },
   logoRow: {
     alignItems: 'center',
@@ -238,4 +306,25 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: 'center',
   },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', padding: 24 },
+  modalCard: { backgroundColor: '#fff', borderRadius: 24, padding: 20 },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: BRAND.ink, marginBottom: 12 },
+  langRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: BRAND.border,
+  },
+  langRowActive: { borderColor: BRAND.primary, backgroundColor: BRAND.lavender },
+  langLabel: { fontSize: 16, fontWeight: '800', color: BRAND.ink },
+  langLabelActive: { color: BRAND.primary },
+  langSub: { fontSize: 12, color: BRAND.muted, marginTop: 2 },
+  check: { fontSize: 18, fontWeight: '800', color: BRAND.primary },
+  modalCancel: { marginTop: 8, alignItems: 'center', paddingVertical: 12 },
+  modalCancelText: { color: BRAND.muted, fontWeight: '700' },
 });
