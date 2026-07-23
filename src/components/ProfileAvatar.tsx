@@ -32,14 +32,17 @@ export default function ProfileAvatar({ name, avatar, size = 72, showCamera = tr
   }, [avatar, photoUrl]);
 
   const uploadPhoto = async (source: 'camera' | 'gallery') => {
-    const picked = source === 'camera'
-      ? await takeProfilePhotoWithCamera()
-      : await pickProfilePhotoFromGallery();
-
-    if (!picked) return;
-
     setUploading(true);
     try {
+      const picked = source === 'camera'
+        ? await takeProfilePhotoWithCamera()
+        : await pickProfilePhotoFromGallery();
+
+      if (!picked) return;
+      if (!picked.base64) {
+        throw new Error('Could not read this photo. Please try another image.');
+      }
+
       await updateAvatar(picked);
       showSuccess('Photo updated', 'Your profile photo has been saved successfully.');
     } catch (e) {

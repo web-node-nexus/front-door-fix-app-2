@@ -36,7 +36,13 @@ type AuthContextValue = {
   }) => Promise<string | undefined>;
   logout: () => Promise<void>;
   updateProfile: (payload: { name: string; phone?: string }) => Promise<User>;
-  updateAvatar: (photo: { uri: string; name: string; type: string }) => Promise<User>;
+  updateAvatar: (photo: {
+    uri: string;
+    name: string;
+    type: string;
+    base64?: string;
+    ext?: string;
+  }) => Promise<User>;
   refreshProProfile: () => Promise<void>;
 };
 
@@ -163,7 +169,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(res.user);
         return res.user;
       },
-      async updateAvatar(photo: { uri: string; name: string; type: string }) {
+      async updateAvatar(photo: {
+        uri: string;
+        name: string;
+        type: string;
+        base64?: string;
+        ext?: string;
+      }) {
         const res = await api.uploadAvatar(photo);
         setUser(res.user);
         return res.user;

@@ -8,7 +8,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { api, Booking, Service } from '../../api/client';
@@ -18,7 +17,7 @@ import KeyboardTextInput from '../../components/KeyboardTextInput';
 import { BRAND } from '../../config';
 import { useActiveBooking } from '../../context/ActiveBookingContext';
 import { useFeedback } from '../../context/FeedbackContext';
-import { pincodeForCity, useLocation } from '../../context/LocationContext';
+import { pincodeForCity, SERVICE_CITIES, useLocation } from '../../context/LocationContext';
 import { nextDates, TIME_SLOTS } from '../../data/bookingSlots';
 import { useScreenPadding } from '../../hooks/useScreenPadding';
 import { durationLabel, serviceImageUrl } from '../../utils/serviceImagery';
@@ -72,20 +71,28 @@ export default function BookServiceScreen() {
 
   const onCityChange = (value: string) => {
     setCity(value);
-    const nextPin = pincodeForCity(value, location.label);
-    setPincode(nextPin);
-    updateLocation({ city: value, pincode: nextPin });
+  };
+
+  const onCityBlur = () => {
+    const trimmed = city.trim();
+    if (!trimmed) return;
+    // Only auto-fill pin when city matches a known hub and pin is empty/incomplete.
+    if (!/^\d{6}$/.test(pincode.trim())) {
+      setPincode(pincodeForCity(trimmed));
+    }
   };
 
   const onPincodeChange = (value: string) => {
-    const digits = value.replace(/\D/g, '').slice(0, 6);
-    setPincode(digits);
-    updateLocation({ pincode: digits });
+    setPincode(value.replace(/\D/g, '').slice(0, 6));
   };
 
   const onAddressLineChange = (value: string) => {
     setAddressLine(value);
-    updateLocation({ addressLine: value });
+  };
+
+  const selectServiceCity = (nextCity: string, nextPin: string) => {
+    setCity(nextCity);
+    setPincode(nextPin);
   };
 
   const confirm = async () => {
@@ -196,32 +203,56 @@ export default function BookServiceScreen() {
           multiline
         />
       </View>
-      <View style={styles.row}>
-        <View style={[styles.field, styles.half]}>
-          <TextInput
-            style={styles.inputPlain}
-            placeholder="City"
-            placeholderTextColor={BRAND.light}
-            value={city}
-            onChangeText={onCityChange}
-            autoCapitalize="words"
-          />
-        </View>
-        <View style={[styles.field, styles.half]}>
-          <TextInput
-            style={styles.inputPlain}
-            placeholder="Pincode"
-            placeholderTextColor={BRAND.light}
-            value={pincode}
-            onChangeText={onPincodeChange}
-            keyboardType="number-pad"
-            maxLength={6}
-          />
-        </View>
+
+      <Text style={styles.fieldCaption}>City</Text>
+      <View style={styles.field}>
+        <Ionicons name="business-outline" size={18} color={BRAND.primary} />
+        <KeyboardTextInput
+          style={styles.input}
+          placeholder="Type any city, e.g. Pune"
+          placeholderTextColor={BRAND.light}
+          value={city}
+          onChangeText={onCityChange}
+          onBlur={onCityBlur}
+          autoCapitalize="words"
+          autoCorrect={false}
+        />
       </View>
-      <Text style={styles.pinHint}>
-        Service available: Mumbai 400001 · Delhi 110001 · Bangalore 560001 · Pune 411001 · Hyderabad 500001
-      </Text>
+
+      <Text style={styles.fieldCaption}>Pincode</Text>
+      <View style={styles.field}>
+        <Ionicons name="navigate-outline" size={18} color={BRAND.primary} />
+        <KeyboardTextInput
+          style={styles.input}
+          placeholder="6-digit pincode"
+          placeholderTextColor={BRAND.light}
+          value={pincode}
+          onChangeText={onPincodeChange}
+          keyboardType="number-pad"
+          maxLength={6}
+        />
+      </View>
+
+      <Text style={styles.pinHint}>Quick select (sets city + pincode)</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cityChips}>
+        {SERVICE_CITIES.map((item) => {
+          const active = city.trim().toLowerCase() === item.city.toLowerCase();
+          return (
+            <Pressable
+              key={item.city}
+              style={[styles.cityChip, active && styles.cityChipActive]}
+              onPress={() => selectServiceCity(item.city, item.pincode)}
+            >
+              <Text style={[styles.cityChipText, active && styles.cityChipTextActive]}>
+                {item.city}
+              </Text>
+              <Text style={[styles.cityChipPin, active && styles.cityChipTextActive]}>
+                {item.pincode}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
 
       <Text style={styles.sectionTitle}>Select Date</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateRow}>
@@ -366,11 +397,32 @@ const styles = StyleSheet.create({
     borderColor: BRAND.border,
     marginBottom: 10,
   },
-  input: { flex: 1, fontSize: 15, color: BRAND.ink, minHeight: 44 },
-  inputPlain: { flex: 1, fontSize: 15, color: BRAND.ink, paddingVertical: 2 },
-  row: { flexDirection: 'row', gap: 10 },
-  half: { flex: 1 },
-  pinHint: { fontSize: 11, color: BRAND.muted, lineHeight: 16, marginBottom: 8, marginTop: -2 },
+  input: { flex: 1, fontSize: 15, color: BRAND.ink, minHeight: 44, paddingVertical: 0 },
+  fieldCaption: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: BRAND.muted,
+    marginBottom: 6,
+    marginTop: 2,
+  },
+  pinHint: { fontSize: 11, color: BRAND.muted, lineHeight: 16, marginBottom: 8, marginTop: 2 },
+  cityChips: { gap: 8, paddingBottom: 14 },
+  cityChip: {
+    backgroundColor: BRAND.canvas,
+    borderWidth: 1,
+    borderColor: BRAND.border,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    minWidth: 96,
+  },
+  cityChipActive: {
+    backgroundColor: BRAND.lavender,
+    borderColor: BRAND.primary,
+  },
+  cityChipText: { fontSize: 13, fontWeight: '800', color: BRAND.ink },
+  cityChipPin: { fontSize: 11, fontWeight: '600', color: BRAND.muted, marginTop: 2 },
+  cityChipTextActive: { color: BRAND.primary },
   dateRow: { gap: 8, marginBottom: 16 },
   dateChip: {
     paddingHorizontal: 16,

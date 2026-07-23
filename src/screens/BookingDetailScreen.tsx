@@ -32,10 +32,10 @@ export default function BookingDetailScreen() {
     cod: { bg: '#FFF7ED', color: '#C2410C' },
   }[payment.tone];
 
-  const canDownloadInvoice = booking?.invoice_available
+  const canDownloadInvoice = booking?.invoice_available === true
+    || booking?.is_paid === true
     || booking?.tab === 'Completed'
-    || booking?.status === 'completed'
-    || booking?.is_paid;
+    || booking?.status === 'completed';
 
   const canTrack = (tab === 'Upcoming' || tab === 'Active') && Boolean(booking?.professional?.trim());
   const canReschedule = tab === 'Upcoming';

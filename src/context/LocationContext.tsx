@@ -99,22 +99,47 @@ export function useLocation() {
   return ctx;
 }
 
+/** Known service cities — used for quick-select chips. */
+export const SERVICE_CITIES: { city: string; pincode: string }[] = [
+  { city: 'Mumbai', pincode: '400001' },
+  { city: 'Delhi', pincode: '110001' },
+  { city: 'Bangalore', pincode: '560001' },
+  { city: 'Pune', pincode: '411001' },
+  { city: 'Hyderabad', pincode: '500001' },
+];
+
+const CITY_PIN_MAP: Record<string, string> = {
+  mumbai: '400001',
+  powai: '400001',
+  andheri: '400001',
+  bandra: '400001',
+  delhi: '110001',
+  bangalore: '560001',
+  bengaluru: '560001',
+  pune: '411001',
+  hyderabad: '500001',
+};
+
+/**
+ * Resolve a default pincode from city name.
+ * Prefers the city field only so an old label like "Powai, Mumbai"
+ * does not overwrite a newly typed city (e.g. Delhi / Pune).
+ */
 export function pincodeForCity(city: string, label = ''): string {
-  const haystack = `${city} ${label}`.toLowerCase();
-  const map: Record<string, string> = {
-    mumbai: '400001',
-    powai: '400001',
-    andheri: '400001',
-    bandra: '400001',
-    delhi: '110001',
-    bangalore: '560001',
-    bengaluru: '560001',
-    pune: '411001',
-    hyderabad: '500001',
-  };
-  for (const [key, pin] of Object.entries(map)) {
-    if (haystack.includes(key)) return pin;
+  const cityKey = city.trim().toLowerCase();
+  if (cityKey) {
+    for (const [key, pin] of Object.entries(CITY_PIN_MAP)) {
+      if (cityKey === key || cityKey.includes(key)) return pin;
+    }
   }
+
+  const labelKey = label.trim().toLowerCase();
+  if (labelKey) {
+    for (const [key, pin] of Object.entries(CITY_PIN_MAP)) {
+      if (labelKey.includes(key)) return pin;
+    }
+  }
+
   return '400001';
 }
 

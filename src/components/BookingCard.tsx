@@ -111,15 +111,15 @@ export default function BookingCard({ booking, onPress, onTrack, onReschedule, o
               <Text style={styles.priceLabel}>Total Amount</Text>
               <Text style={styles.price}>₹{Number(booking.amount).toLocaleString('en-IN')}</Text>
               <Pressable
-                style={[styles.viewBtn, tab === 'Completed' && styles.viewInvoice]}
+                style={[styles.viewBtn, (tab === 'Completed' || booking.invoice_available) && styles.viewInvoice]}
                 onPress={(e) => {
                   e.stopPropagation?.();
-                  if (tab === 'Completed' && onInvoice) onInvoice(booking);
+                  if ((tab === 'Completed' || booking.invoice_available) && onInvoice) onInvoice(booking);
                   else onPress();
                 }}
               >
-                <Text style={[styles.viewBtnText, tab === 'Completed' && styles.viewInvoiceText]}>
-                  {tab === 'Completed' ? 'View Invoice' : 'View Details'}
+                <Text style={[styles.viewBtnText, (tab === 'Completed' || booking.invoice_available) && styles.viewInvoiceText]}>
+                  {(tab === 'Completed' || booking.invoice_available) ? 'View Invoice' : 'View Details'}
                 </Text>
               </Pressable>
             </View>

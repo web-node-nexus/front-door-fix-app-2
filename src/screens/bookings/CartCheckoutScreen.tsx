@@ -18,80 +18,57 @@ import KeyboardTextInput from '../../components/KeyboardTextInput';
 import { BRAND } from '../../config';
 import { useActiveBooking } from '../../context/ActiveBookingContext';
 import { useCart } from '../../context/CartContext';
-import { useLocation } from '../../context/LocationContext';
+import { pincodeForCity, SERVICE_CITIES, useLocation } from '../../context/LocationContext';
 import { nextDates, TIME_SLOTS } from '../../data/bookingSlots';
 import { useScreenPadding } from '../../hooks/useScreenPadding';
-
-function parseLocationLabel(label: string): { address: string; city: string } {
-  const parts = label.split(',').map((p) => p.trim()).filter(Boolean);
-  if (parts.length >= 2) {
-    return {
-      address: parts.slice(0, -1).join(', '),
-      city: parts[parts.length - 1],
-    };
-  }
-  return { address: label, city: label };
-}
-
-const SERVICEABLE_PINCODES: Record<string, string> = {
-  mumbai: '400001',
-  powai: '400001',
-  andheri: '400001',
-  delhi: '110001',
-  bangalore: '560001',
-  bengaluru: '560001',
-  pune: '411001',
-  hyderabad: '500001',
-};
-
-function pincodeForLocation(city: string, label: string): string {
-  const haystack = `${city} ${label}`.toLowerCase();
-  for (const [key, pin] of Object.entries(SERVICEABLE_PINCODES)) {
-    if (haystack.includes(key)) return pin;
-  }
-  return '400001';
-}
 
 export default function CartCheckoutScreen() {
   const nav = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const pad = useScreenPadding();
-  const { location } = useLocation();
+  const { location, updateLocation } = useLocation();
   const { items, itemCount, totalAmount, clearCart } = useCart();
   const { refresh: refreshActiveBooking } = useActiveBooking();
   const dates = nextDates();
   const pickingLocation = useRef(false);
 
-  const parsed = parseLocationLabel(location.label);
-
   const [date, setDate] = useState(dates[1]?.value || dates[0].value);
   const [slot, setSlot] = useState(TIME_SLOTS[1]);
-  const [addressLine, setAddressLine] = useState('');
-  const [city, setCity] = useState(parsed.city);
-  const [pincode, setPincode] = useState(pincodeForLocation(parsed.city, location.label));
+  const [addressLine, setAddressLine] = useState(location.addressLine || '');
+  const [city, setCity] = useState(location.city || 'Mumbai');
+  const [pincode, setPincode] = useState(location.pincode || pincodeForCity(location.city, location.label));
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'upi'>('cod');
   const [saving, setSaving] = useState(false);
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
   const [bookedCount, setBookedCount] = useState(0);
 
-  const applyLocation = useCallback((label: string) => {
-    const next = parseLocationLabel(label);
-    setCity(next.city);
-    setPincode(pincodeForLocation(next.city, label));
-  }, []);
-
   useFocusEffect(
     useCallback(() => {
       if (pickingLocation.current) {
-        applyLocation(location.label);
         pickingLocation.current = false;
+        setAddressLine(location.addressLine || '');
+        setCity(location.city || 'Mumbai');
+        setPincode(location.pincode || pincodeForCity(location.city, location.label));
       }
-    }, [location.label, applyLocation]),
+    }, [location.label, location.city, location.pincode, location.addressLine]),
   );
 
   const openLocationPicker = () => {
     pickingLocation.current = true;
     nav.navigate('LocationPicker');
+  };
+
+  const onCityBlur = () => {
+    const trimmed = city.trim();
+    if (!trimmed) return;
+    if (!/^\d{6}$/.test(pincode.trim())) {
+      setPincode(pincodeForCity(trimmed));
+    }
+  };
+
+  const selectServiceCity = (nextCity: string, nextPin: string) => {
+    setCity(nextCity);
+    setPincode(nextPin);
   };
 
   const fullAddress = () => {
@@ -120,6 +97,8 @@ export default function CartCheckoutScreen() {
       Alert.alert('Invalid pincode', 'Please enter a valid 6-digit pincode.');
       return;
     }
+
+    await updateLocation({ city: city.trim(), pincode: pincode.trim(), addressLine: addressLine.trim() });
 
     setSaving(true);
     let lastBooking: Booking | null = null;
@@ -234,28 +213,56 @@ export default function CartCheckoutScreen() {
             multiline
           />
         </View>
-        <View style={styles.row}>
-          <View style={[styles.field, styles.half]}>
-            <KeyboardTextInput
-              style={styles.inputPlain}
-              placeholder="City"
-              placeholderTextColor={BRAND.light}
-              value={city}
-              onChangeText={setCity}
-            />
-          </View>
-          <View style={[styles.field, styles.half]}>
-            <KeyboardTextInput
-              style={styles.inputPlain}
-              placeholder="Pincode"
-              placeholderTextColor={BRAND.light}
-              value={pincode}
-              onChangeText={setPincode}
-              keyboardType="number-pad"
-              maxLength={6}
-            />
-          </View>
+
+        <Text style={styles.fieldCaption}>City</Text>
+        <View style={styles.field}>
+          <Ionicons name="business-outline" size={18} color={BRAND.primary} />
+          <KeyboardTextInput
+            style={styles.input}
+            placeholder="Type any city, e.g. Pune"
+            placeholderTextColor={BRAND.light}
+            value={city}
+            onChangeText={setCity}
+            onBlur={onCityBlur}
+            autoCapitalize="words"
+            autoCorrect={false}
+          />
         </View>
+
+        <Text style={styles.fieldCaption}>Pincode</Text>
+        <View style={styles.field}>
+          <Ionicons name="navigate-outline" size={18} color={BRAND.primary} />
+          <KeyboardTextInput
+            style={styles.input}
+            placeholder="6-digit pincode"
+            placeholderTextColor={BRAND.light}
+            value={pincode}
+            onChangeText={(v) => setPincode(v.replace(/\D/g, '').slice(0, 6))}
+            keyboardType="number-pad"
+            maxLength={6}
+          />
+        </View>
+
+        <Text style={styles.pinHint}>Quick select (sets city + pincode)</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cityChips}>
+          {SERVICE_CITIES.map((item) => {
+            const active = city.trim().toLowerCase() === item.city.toLowerCase();
+            return (
+              <Pressable
+                key={item.city}
+                style={[styles.cityChip, active && styles.cityChipActive]}
+                onPress={() => selectServiceCity(item.city, item.pincode)}
+              >
+                <Text style={[styles.cityChipText, active && styles.cityChipTextActive]}>
+                  {item.city}
+                </Text>
+                <Text style={[styles.cityChipPin, active && styles.cityChipTextActive]}>
+                  {item.pincode}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
 
         <Text style={styles.sectionTitle}>Select Date</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateRow}>
@@ -427,10 +434,32 @@ const styles = StyleSheet.create({
     borderColor: BRAND.border,
     marginBottom: 10,
   },
-  input: { flex: 1, fontSize: 15, color: BRAND.ink, minHeight: 44 },
-  inputPlain: { flex: 1, fontSize: 15, color: BRAND.ink },
-  row: { flexDirection: 'row', gap: 10 },
-  half: { flex: 1 },
+  input: { flex: 1, fontSize: 15, color: BRAND.ink, minHeight: 44, paddingVertical: 0 },
+  fieldCaption: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: BRAND.muted,
+    marginBottom: 6,
+    marginTop: 2,
+  },
+  pinHint: { fontSize: 11, color: BRAND.muted, lineHeight: 16, marginBottom: 8, marginTop: 2 },
+  cityChips: { gap: 8, paddingBottom: 14 },
+  cityChip: {
+    backgroundColor: BRAND.canvas,
+    borderWidth: 1,
+    borderColor: BRAND.border,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    minWidth: 96,
+  },
+  cityChipActive: {
+    backgroundColor: BRAND.lavender,
+    borderColor: BRAND.primary,
+  },
+  cityChipText: { fontSize: 13, fontWeight: '800', color: BRAND.ink },
+  cityChipPin: { fontSize: 11, fontWeight: '600', color: BRAND.muted, marginTop: 2 },
+  cityChipTextActive: { color: BRAND.primary },
   dateRow: { gap: 8, marginBottom: 16 },
   dateChip: {
     paddingHorizontal: 16,

@@ -1,18 +1,17 @@
 import Constants from 'expo-constants';
 
 /**
- * API mode switch.
- *  - 'live'  → production server (frontdoorfix.in)
- *  - 'local' → local dev server on your machine (USB/WiFi + localhost)
- * Live build ke liye 'live' rakho, local development ke liye 'local'.
+ * Release APK hits ONLY this production API (no LAN / USB / tunnel):
+ *   https://frontdoor.in/api
  */
-/** Dev builds use local Laravel; release builds use production. */
 export const API_MODE: 'live' | 'local' = __DEV__ ? 'local' : 'live';
 
-/** Production origin (no trailing slash). */
-export const LIVE_ORIGIN = 'https://frontdoorfix.in';
+/** Origin only — app appends /api automatically → https://frontdoor.in/api */
+export const LIVE_ORIGIN = 'https://frontdoor.in';
 
-// USB + adb reverse fallback
+export const PUBLIC_ORIGIN = 'https://frontdoor.in';
+
+// Dev-only (Expo Go / USB)
 export const DEV_IP = '127.0.0.1';
 
 /** Expo packager host — same IP phone uses for Metro (USB or WiFi). */
@@ -43,11 +42,13 @@ export function getAssetBaseUrl(host = getDevHost()) {
 }
 
 /**
- * Ordered list of API base URLs to try. In live mode this is a single
- * production URL; in local mode it tries localhost + LAN IP + emulator host.
+ * Ordered list of API base URLs to try.
+ * Live/release: public origin only — no LAN / USB fallbacks.
  */
 export function getApiBaseCandidates(): string[] {
-  if (API_MODE === 'live') return [`${LIVE_ORIGIN}/api`];
+  if (API_MODE === 'live') {
+    return [`${LIVE_ORIGIN}/api`];
+  }
 
   const hosts: string[] = [DEV_IP];
   const devHost = getDevHost();
@@ -77,3 +78,6 @@ export const BRAND = {
   border: '#F0F0F5',
   success: '#10B981',
 };
+
+/** Rebuild stamp for fresh APK */
+export const BUILD_STAMP = '2026-07-23 16:40:00';

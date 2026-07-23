@@ -27,9 +27,19 @@ export type User = {
   email: string;
   phone?: string;
   avatar?: string | null;
+  avatar_url?: string | null;
   roles?: string[];
   professional?: ProfessionalProfile | null;
 };
+
+/** Prefer absolute avatar_url for display in the app. */
+export function withDisplayAvatar<T extends User>(user: T): T {
+  const url = user.avatar_url?.trim();
+  if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+    return { ...user, avatar: url };
+  }
+  return user;
+}
 
 export function isProfessionalUser(user: User | null): boolean {
   return !!user?.roles?.includes('professional');
@@ -165,17 +175,16 @@ function apiBaseCandidates(): string[] {
 function networkErrorMessage(tried: string[]): string {
   return (
     'Server connect nahi ho raha.\n\n' +
-    '1. USB cable connect karo\n' +
-    '2. PC par chalao: adb reverse tcp:8000 tcp:8000\n' +
-    '3. Backend chalao: php artisan serve --host=0.0.0.0 --port=8000\n' +
-    `4. Tried: ${tried.join(', ')}`
+    'Live API reach nahi ho pa rahi.\n' +
+    'Internet on rakho aur thodi der baad try karo.\n' +
+    `Tried: ${tried.join(', ')}`
   );
 }
 
 function apiErrorMessage(body: Record<string, unknown>, fallback: string): string {
   const errors = body?.errors;
   if (errors && typeof errors === 'object') {
-    for (const field of ['name', 'phone', 'pincode', 'booking_date', 'time_slot', 'service_id', 'address', 'city', 'email', 'password', 'payment_method']) {
+    for (const field of ['avatar', 'name', 'phone', 'pincode', 'booking_date', 'time_slot', 'service_id', 'address', 'city', 'email', 'password', 'payment_method']) {
       const msg = (errors as Record<string, string[]>)[field]?.[0];
       if (msg) return msg;
     }
@@ -273,55 +282,106 @@ async function fetchInvoiceHtml(bookingId: number): Promise<string> {
   throw new Error(networkErrorMessage(bases));
 }
 
-async function uploadAvatarFile(photo: { uri: string; name: string; type: string }): Promise<{ success: boolean; message: string; user: User }> {
+async function uploadAvatarFile(photo: {
+  uri: string;
+  name: string;
+  type: string;
+  base64?: string;
+  ext?: string;
+}): Promise<{ success: boolean; message: string; user: User }> {
   const token = await getToken();
   if (!token) {
     throw new Error('Please login again to update your profile photo.');
   }
 
-  const formData = new FormData();
-  formData.append('avatar', {
-    uri: photo.uri,
-    name: photo.name,
-    type: photo.type,
-  } as unknown as Blob);
-
   const bases = apiBaseCandidates();
   let lastNetworkError: Error | null = null;
   let lastHttpError: Error | null = null;
+  const FileSystem = await import('expo-file-system/legacy');
 
   for (const base of bases) {
     const url = `${base}/user/avatar`;
+
+    // 1) Preferred: JSON base64 (works even when multipart is blocked)
+    if (photo.base64 && photo.base64.length > 100) {
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            avatar_base64: photo.base64,
+            avatar_ext: photo.ext || 'jpg',
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data?.user) data.user = withDisplayAvatar(data.user as User);
+          return data;
+        }
+
+        const body = await response.json().catch(() => ({}));
+        lastHttpError = new Error(apiErrorMessage(body, `Upload failed (${response.status})`));
+        if (response.status === 401) throw lastHttpError;
+        // 422 may mean old server without base64 — try multipart next
+      } catch (e) {
+        if (e instanceof Error && e.message.toLowerCase().includes('login')) throw e;
+        lastNetworkError = e instanceof Error ? e : new Error('Network request failed');
+      }
+    }
+
+    // 2) Expo native multipart upload (more reliable than fetch FormData on Android)
     try {
-      const response = await fetch(url, {
-        method: 'POST',
+      const upload = await FileSystem.uploadAsync(url, photo.uri, {
+        httpMethod: 'POST',
+        uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+        fieldName: 'avatar',
+        mimeType: photo.type || 'image/jpeg',
+        parameters: {},
         headers: {
           Accept: 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: formData,
       });
 
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        const message = apiErrorMessage(body, `Upload failed (${response.status})`);
-        lastHttpError = new Error(message);
-        if (response.status === 401 || response.status === 422) {
-          throw lastHttpError;
-        }
-        continue;
+      const status = upload.status;
+      let body: Record<string, unknown> = {};
+      try {
+        body = JSON.parse(upload.body || '{}');
+      } catch {
+        body = {};
       }
 
-      return response.json();
-    } catch (e) {
-      if (e instanceof Error && (e.message.includes('login') || e.message.includes('Upload'))) {
-        throw e;
+      if (status >= 200 && status < 300) {
+        if (body?.user) body.user = withDisplayAvatar(body.user as User);
+        return body as { success: boolean; message: string; user: User };
       }
-      lastNetworkError = e instanceof Error ? e : new Error('Network request failed');
+
+      lastHttpError = new Error(apiErrorMessage(body, `Upload failed (${status})`));
+      if (status === 401 || status === 422) {
+        // keep trying other bases / methods unless auth is bad
+        if (status === 401) throw lastHttpError;
+      }
+    } catch (e) {
+      if (e instanceof Error && (e.message.includes('login') || e.message.includes('Upload') || e.message.includes('avatar'))) {
+        if (e.message.toLowerCase().includes('login') || e.message.includes('Unauthenticated')) throw e;
+        lastHttpError = e;
+      } else {
+        lastNetworkError = e instanceof Error ? e : new Error('Network request failed');
+      }
     }
   }
 
   if (lastHttpError) throw lastHttpError;
+  if (lastNetworkError) {
+    throw new Error(
+      'Could not reach server to upload photo. Same WiFi pe raho aur PC pe website server chalao (port 8000).',
+    );
+  }
   throw new Error(networkErrorMessage(bases));
 }
 
@@ -347,7 +407,7 @@ export const api = {
     } catch {
       // Token save fail shouldn't block login session in memory
     }
-    return data;
+    return { ...data, user: withDisplayAvatar(data.user) };
   },
   register: async (payload: {
     name: string;
@@ -365,7 +425,7 @@ export const api = {
     } catch {
       // Token save fail shouldn't block register session in memory
     }
-    return data;
+    return { ...data, user: withDisplayAvatar(data.user) };
   },
   registerProfessional: async (payload: {
     name: string;
@@ -401,19 +461,28 @@ export const api = {
     const token = await getToken();
     if (!token?.trim()) return null;
     try {
-      return await request<User>('/user', {}, true);
+      const user = await request<User>('/user', {}, true);
+      return withDisplayAvatar(user);
     } catch {
       await setToken(null);
       return null;
     }
   },
-  updateProfile: (payload: { name: string; phone?: string }) =>
-    request<{ success: boolean; message: string; user: User }>(
+  updateProfile: async (payload: { name: string; phone?: string }) => {
+    const res = await request<{ success: boolean; message: string; user: User }>(
       '/user/profile',
       { method: 'POST', body: JSON.stringify(payload) },
       true,
-    ),
-  uploadAvatar: (photo: { uri: string; name: string; type: string }) => uploadAvatarFile(photo),
+    );
+    return { ...res, user: withDisplayAvatar(res.user) };
+  },
+  uploadAvatar: (photo: {
+    uri: string;
+    name: string;
+    type: string;
+    base64?: string;
+    ext?: string;
+  }) => uploadAvatarFile(photo),
   bookings: () => request<Booking[]>('/bookings', {}, true),
   notifications: () =>
     request<{ notifications: MobileNotification[]; unread_count: number }>('/notifications', {}, true),
@@ -429,7 +498,11 @@ export const api = {
     ),
   bookingTracking: (id: number) => request<TrackingPayload>(`/bookings/${id}`, {}, true),
   invoiceUrl: (id: number) =>
-    request<{ filename: string; pdf_filename: string; invoice_no: string }>(`/bookings/${id}/invoice`, {}, true),
+    request<{ filename: string; pdf_filename: string; invoice_no: string; html: string }>(
+      `/bookings/${id}/invoice`,
+      {},
+      true,
+    ),
   invoiceHtml: (id: number) => fetchInvoiceHtml(id),
   paymentPayload: (id: number) => request<PaymentPayload>(`/bookings/${id}/payment`, {}, true),
   selectPaymentMethod: (id: number, method: 'cod' | 'online') =>

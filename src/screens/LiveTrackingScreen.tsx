@@ -1,10 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Dimensions,
   Linking,
   Pressable,
   ScrollView,
@@ -12,7 +11,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import MapView, { Marker, Polyline } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, Booking, TrackingPayload } from '../api/client';
 import { BRAND } from '../config';
@@ -21,7 +19,6 @@ import { isBookingCompleted } from '../utils/bookingLifecycle';
 import { useActiveBooking } from '../context/ActiveBookingContext';
 
 const POLL_MS = 3000;
-const PANEL_MAX = Math.round(Dimensions.get('window').height * 0.52);
 
 function toCoord(pair: [number, number] | undefined, fallback: { latitude: number; longitude: number }) {
   if (!pair || pair.length < 2) return fallback;
@@ -65,7 +62,6 @@ export default function LiveTrackingScreen() {
   const insets = useSafeAreaInsets();
   const { location: savedLoc } = useLocation();
   const { showServiceComplete } = useActiveBooking();
-  const mapRef = useRef<MapView>(null);
 
   const booking: Booking = route.params?.booking;
   const [loading, setLoading] = useState(true);
@@ -94,12 +90,6 @@ export default function LiveTrackingScreen() {
 
       const worker = toCoord(data.worker_location, customerFallback);
       setProPos(worker);
-      const customer = toCoord(data.customer_location, customerFallback);
-      const coords = data.searching ? [customer] : [worker, customer];
-      mapRef.current?.fitToCoordinates(coords, {
-        edgePadding: { top: 120, right: 60, bottom: PANEL_MAX + 40, left: 60 },
-        animated: true,
-      });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not load tracking');
     } finally {
@@ -121,13 +111,19 @@ export default function LiveTrackingScreen() {
     if (phone) Linking.openURL(`tel:${phone}`);
   };
 
+  const openExternalMap = () => {
+    const target = showPro ? pro : customer;
+    const url = `https://www.google.com/maps/search/?api=1&query=${target.latitude},${target.longitude}`;
+    Linking.openURL(url).catch(() => {});
+  };
+
   const stage = tracking?.workflow_stage || 'received';
   const searching = tracking == null
     ? !booking.professional
     : Boolean(tracking.searching);
   const isMoving = stage === 'on_the_way' || stage === 'accepted';
   const arrived = ['arrived', 'otp_verified', 'work_started', 'awaiting_payment', 'completed'].includes(stage);
-  const showPro = tracking?.professional && !searching;
+  const showPro = Boolean(tracking?.professional && !searching);
 
   if (loading && !tracking) {
     return (
@@ -140,50 +136,40 @@ export default function LiveTrackingScreen() {
 
   return (
     <View style={styles.root}>
-      <MapView
-        ref={mapRef}
-        style={StyleSheet.absoluteFill}
-        initialRegion={{
-          latitude: customer.latitude,
-          longitude: customer.longitude,
-          latitudeDelta: 0.05,
-          longitudeDelta: 0.05,
-        }}
-        showsUserLocation
-      >
-        <Marker coordinate={customer} title="Your Location">
-          <View style={styles.homeMarker}>
-            <Ionicons name="home" size={18} color="#fff" />
+      <LinearGradient colors={[BRAND.primary, BRAND.purple]} style={[styles.mapFallback, { paddingTop: insets.top + 8 }]}>
+        <View style={styles.topBar}>
+          <Pressable style={styles.backBtn} onPress={() => nav.goBack()}>
+            <Ionicons name="arrow-back" size={22} color={BRAND.ink} />
+          </Pressable>
+          <View style={styles.topPill}>
+            <View style={[styles.liveDot, !searching && styles.liveOn]} />
+            <Text style={styles.topText} numberOfLines={1}>
+              {tracking?.status_label || (searching ? 'Waiting for partner to accept' : stage === 'accepted' || stage === 'on_the_way' ? 'Service partner on the way' : 'Live tracking')}
+            </Text>
           </View>
-        </Marker>
-
-        {showPro && (
-          <Marker coordinate={pro} anchor={{ x: 0.5, y: 0.5 }}>
-            <View style={[styles.proMarker, arrived && styles.proArrived]}>
-              <Ionicons name={arrived ? 'construct' : 'bicycle'} size={20} color="#fff" />
-            </View>
-          </Marker>
-        )}
-
-        {showPro && isMoving && !arrived && (
-          <Polyline coordinates={[pro, customer]} strokeColor={BRAND.primary} strokeWidth={3} lineDashPattern={[8, 6]} />
-        )}
-      </MapView>
-
-      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
-        <Pressable style={styles.backBtn} onPress={() => nav.goBack()}>
-          <Ionicons name="arrow-back" size={22} color={BRAND.ink} />
-        </Pressable>
-        <View style={styles.topPill}>
-          <View style={[styles.liveDot, !searching && styles.liveOn]} />
-          <Text style={styles.topText} numberOfLines={1}>
-            {tracking?.status_label || (searching ? 'Waiting for partner to accept' : stage === 'accepted' || stage === 'on_the_way' ? 'Service partner on the way' : 'Live tracking')}
-          </Text>
+          <Pressable style={styles.refreshBtn} onPress={() => load()}>
+            <Ionicons name="refresh" size={20} color={BRAND.primary} />
+          </Pressable>
         </View>
-        <Pressable style={styles.refreshBtn} onPress={() => load()}>
-          <Ionicons name="refresh" size={20} color={BRAND.primary} />
-        </Pressable>
-      </View>
+
+        <View style={styles.mapHero}>
+          <Ionicons name={arrived ? 'home' : showPro ? 'bicycle' : 'hourglass'} size={42} color="#fff" />
+          <Text style={styles.mapHeroTitle}>
+            {searching ? 'Finding a professional' : arrived ? 'Partner at your location' : isMoving ? 'Partner on the way' : 'Tracking active'}
+          </Text>
+          {!searching && isMoving && (tracking?.eta_minutes ?? 0) > 0 ? (
+            <Text style={styles.mapHeroSub}>{tracking?.eta_minutes} min · {tracking?.distance_km} km away</Text>
+          ) : (
+            <Text style={styles.mapHeroSub}>
+              {showPro ? `Pro: ${pro.latitude.toFixed(4)}, ${pro.longitude.toFixed(4)}` : `You: ${customer.latitude.toFixed(4)}, ${customer.longitude.toFixed(4)}`}
+            </Text>
+          )}
+          <Pressable style={styles.openMapsBtn} onPress={openExternalMap}>
+            <Ionicons name="map-outline" size={16} color={BRAND.primary} />
+            <Text style={styles.openMapsText}>Open in Maps</Text>
+          </Pressable>
+        </View>
+      </LinearGradient>
 
       {error && (
         <View style={styles.errorBubble}>
@@ -192,14 +178,7 @@ export default function LiveTrackingScreen() {
         </View>
       )}
 
-      {!searching && isMoving && (tracking?.eta_minutes ?? 0) > 0 && (
-        <View style={styles.etaBubble}>
-          <Ionicons name="time-outline" size={16} color={BRAND.primary} />
-          <Text style={styles.etaText}>{tracking?.eta_minutes} min · {tracking?.distance_km} km away</Text>
-        </View>
-      )}
-
-      <View style={[styles.bottom, { paddingBottom: insets.bottom + 12, maxHeight: PANEL_MAX }]}>
+      <View style={[styles.bottom, { paddingBottom: insets.bottom + 12 }]}>
         <View style={styles.handle} />
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.bottomScroll}>
           <View style={styles.bookingCard}>
@@ -337,32 +316,40 @@ export default function LiveTrackingScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
+  root: { flex: 1, backgroundColor: BRAND.surface },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: BRAND.surface },
   loadingText: { color: BRAND.muted, fontWeight: '600' },
-  topBar: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, gap: 10 },
+  mapFallback: { paddingBottom: 28, paddingHorizontal: 16 },
+  mapHero: { alignItems: 'center', paddingTop: 28, paddingBottom: 8, gap: 8 },
+  mapHeroTitle: { color: '#fff', fontSize: 20, fontWeight: '800', textAlign: 'center' },
+  mapHeroSub: { color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: '600', textAlign: 'center' },
+  openMapsBtn: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#fff',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+  },
+  openMapsText: { color: BRAND.primary, fontWeight: '800', fontSize: 13 },
+  topBar: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   backBtn: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', elevation: 4 },
   topPill: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#fff', borderRadius: 14, padding: 12, elevation: 4 },
   liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: BRAND.light },
   liveOn: { backgroundColor: BRAND.success },
   topText: { fontSize: 13, fontWeight: '700', flex: 1 },
   refreshBtn: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', elevation: 4 },
-  errorBubble: { position: 'absolute', top: '28%', alignSelf: 'center', backgroundColor: '#FEE2E2', padding: 12, borderRadius: 12, flexDirection: 'row', gap: 10, alignItems: 'center' },
-  errorText: { fontSize: 12, color: '#B91C1C' },
+  errorBubble: { marginHorizontal: 16, marginTop: 10, backgroundColor: '#FEE2E2', padding: 12, borderRadius: 12, flexDirection: 'row', gap: 10, alignItems: 'center' },
+  errorText: { fontSize: 12, color: '#B91C1C', flex: 1 },
   retryText: { fontSize: 12, fontWeight: '800', color: BRAND.primary },
-  etaBubble: { position: 'absolute', top: '36%', alignSelf: 'center', flexDirection: 'row', gap: 6, backgroundColor: '#fff', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, elevation: 4 },
-  etaText: { fontSize: 13, fontWeight: '700' },
-  homeMarker: { width: 36, height: 36, borderRadius: 18, backgroundColor: BRAND.ink, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#fff' },
-  proMarker: { width: 42, height: 42, borderRadius: 21, backgroundColor: BRAND.primary, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#fff' },
-  proArrived: { backgroundColor: '#9333EA' },
   bottom: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    flex: 1,
     backgroundColor: '#fff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    marginTop: -16,
     elevation: 12,
     shadowColor: '#000',
     shadowOpacity: 0.12,

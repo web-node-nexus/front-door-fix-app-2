@@ -1,10 +1,14 @@
+import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
 export type PickedPhoto = {
   uri: string;
   name: string;
   type: string;
+  /** Base64 payload without data: prefix — preferred upload method */
+  base64?: string;
+  ext?: string;
 };
 
 async function ensureLibraryPermission(): Promise<boolean> {
@@ -25,26 +29,67 @@ async function ensureCameraPermission(): Promise<boolean> {
   return true;
 }
 
-function toPickedPhoto(asset: ImagePicker.ImagePickerAsset): PickedPhoto {
-  const ext = asset.uri.split('.').pop()?.toLowerCase();
-  const type = ext === 'png' ? 'image/png' : 'image/jpeg';
+async function toPickedPhoto(asset: ImagePicker.ImagePickerAsset): Promise<PickedPhoto> {
+  // Prefer JPEG for smaller reliable uploads on live servers
+  const type = 'image/jpeg';
+  const ext = 'jpg';
+  let uri = asset.uri;
+
+  if (Platform.OS === 'android') {
+    const dest = `${FileSystem.cacheDirectory}avatar_${Date.now()}.${ext}`;
+    try {
+      await FileSystem.copyAsync({ from: uri, to: dest });
+      uri = dest;
+    } catch {
+      // keep original
+    }
+    if (!uri.startsWith('file://') && !uri.startsWith('content://')) {
+      uri = `file://${uri}`;
+    }
+  }
+
+  let base64 = typeof asset.base64 === 'string' && asset.base64.length > 0 ? asset.base64 : undefined;
+  if (!base64) {
+    try {
+      base64 = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+    } catch {
+      base64 = undefined;
+    }
+  }
+
+  if (!base64) {
+    throw new Error('Could not read this photo. Please try another image.');
+  }
+
+  // Keep under common PHP post limits
+  if (base64.length > 2_800_000) {
+    throw new Error('Photo is too large. Please choose a smaller photo.');
+  }
+
   return {
-    uri: asset.uri,
-    name: `avatar.${ext === 'png' ? 'png' : 'jpg'}`,
+    uri,
+    name: `avatar.${ext}`,
     type,
+    base64,
+    ext,
   };
 }
+
+const pickerOptions: ImagePicker.ImagePickerOptions = {
+  mediaTypes: ['images'],
+  allowsEditing: true,
+  aspect: [1, 1],
+  quality: 0.55,
+  exif: false,
+  base64: true,
+};
 
 export async function pickProfilePhotoFromGallery(): Promise<PickedPhoto | null> {
   if (!(await ensureLibraryPermission())) return null;
 
-  const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ['images'],
-    allowsEditing: true,
-    aspect: [1, 1],
-    quality: 0.85,
-  });
-
+  const result = await ImagePicker.launchImageLibraryAsync(pickerOptions);
   if (result.canceled || !result.assets[0]) return null;
   return toPickedPhoto(result.assets[0]);
 }
@@ -55,7 +100,9 @@ export async function takeProfilePhotoWithCamera(): Promise<PickedPhoto | null> 
   const result = await ImagePicker.launchCameraAsync({
     allowsEditing: true,
     aspect: [1, 1],
-    quality: 0.85,
+    quality: 0.55,
+    exif: false,
+    base64: true,
   });
 
   if (result.canceled || !result.assets[0]) return null;
