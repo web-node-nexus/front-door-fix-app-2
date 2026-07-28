@@ -48,7 +48,7 @@ export default function LoginScreen() {
       return;
     }
     try {
-      await login(email.trim(), password);
+      await login(email.trim(), password.trim());
     } catch (e) {
       Alert.alert(t('login.failedTitle'), e instanceof Error ? e.message : t('login.failedBody'));
     }
@@ -64,7 +64,7 @@ export default function LoginScreen() {
           styles.scroll,
           { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 },
         ]}
-        extraScrollOffset={72}
+        extraScrollOffset={140}
         showsVerticalScrollIndicator={false}
         bounces={false}
       >

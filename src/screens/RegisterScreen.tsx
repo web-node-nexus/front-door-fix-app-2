@@ -32,8 +32,13 @@ export default function RegisterScreen() {
   const [showConfirm, setShowConfirm] = useState(false);
 
   async function handleRegister() {
-    if (!name.trim() || !email.trim() || !phone.trim() || !password || !confirmPassword) {
+    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+    if (!name.trim() || !email.trim() || !cleanPhone || !password || !confirmPassword) {
       Alert.alert('Missing fields', 'Please fill all fields');
+      return;
+    }
+    if (cleanPhone.length !== 10) {
+      Alert.alert('Invalid phone', 'Please enter a valid 10-digit mobile number');
       return;
     }
     if (password.length < 6) {
@@ -47,10 +52,10 @@ export default function RegisterScreen() {
     try {
       await register({
         name: name.trim(),
-        email: email.trim(),
-        phone: phone.trim(),
-        password,
-        password_confirmation: confirmPassword,
+        email: email.trim().toLowerCase(),
+        phone: cleanPhone,
+        password: password.trim(),
+        password_confirmation: confirmPassword.trim(),
       });
     } catch (e) {
       Alert.alert('Registration failed', e instanceof Error ? e.message : 'Please try again');
@@ -67,7 +72,7 @@ export default function RegisterScreen() {
           styles.scroll,
           { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 },
         ]}
-        extraScrollOffset={72}
+        extraScrollOffset={140}
         showsVerticalScrollIndicator={false}
       >
           <Pressable style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={10}>

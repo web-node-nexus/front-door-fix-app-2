@@ -22,6 +22,7 @@ import {
   serviceRating,
 } from '../utils/serviceDetails';
 import { categoryIcon, durationLabel, serviceImageUrl } from '../utils/serviceImagery';
+import { stripHtml } from '../utils/stripHtml';
 
 type Props = {
   visible: boolean;
@@ -96,7 +97,7 @@ export default function ServiceDetailSheet({ visible, service, onClose, onBook }
 
               <Text style={styles.sectionTitle}>About this service</Text>
               <Text style={styles.description}>
-                {service.description
+                {stripHtml(service.description)
                   || 'Professional home service delivered by verified experts. Book now and get quality service at your doorstep with transparent pricing.'}
               </Text>
 

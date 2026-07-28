@@ -60,7 +60,12 @@ export default function KeyboardAwareScroll({
 
     const showSub = Keyboard.addListener(showEvent, (e) => {
       scrollBeforeKeyboard.current = scrollYRef.current;
-      setKeyboardExtraPadding(Math.max(0, e.endCoordinates.height - insets.bottom - 24));
+      // Android uses adjustResize — don't double-pad; just keep a small buffer.
+      if (Platform.OS === 'android') {
+        setKeyboardExtraPadding(120);
+      } else {
+        setKeyboardExtraPadding(Math.max(0, e.endCoordinates.height - insets.bottom - 24));
+      }
     });
 
     const hideSub = Keyboard.addListener(hideEvent, () => {
@@ -119,17 +124,13 @@ export default function KeyboardAwareScroll({
 
   return (
     <KeyboardScrollContext.Provider value={{ scrollToFocusedInput }}>
-      {Platform.OS === 'ios' ? (
-        <KeyboardAvoidingView
-          style={[{ flex: 1 }, containerStyle]}
-          behavior="padding"
-          keyboardVerticalOffset={offset}
-        >
-          {scrollView}
-        </KeyboardAvoidingView>
-      ) : (
-        <View style={[{ flex: 1 }, containerStyle]}>{scrollView}</View>
-      )}
+      <KeyboardAvoidingView
+        style={[{ flex: 1 }, containerStyle]}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={offset}
+      >
+        {scrollView}
+      </KeyboardAvoidingView>
     </KeyboardScrollContext.Provider>
   );
 }

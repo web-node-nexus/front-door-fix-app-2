@@ -17,7 +17,7 @@ export default function ServiceCartBar({ onPress }: Props) {
   if (itemCount === 0) return null;
 
   return (
-    <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+    <View style={[styles.wrap, { paddingBottom: insets.bottom + 12 }]}>
       <Pressable style={styles.bar} onPress={onPress}>
         <View style={styles.left}>
           <View style={styles.badge}>

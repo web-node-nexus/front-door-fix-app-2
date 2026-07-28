@@ -44,6 +44,8 @@ export function getAssetBaseUrl(host = getDevHost()) {
 /**
  * Ordered list of API base URLs to try.
  * Live/release: public origin only — no LAN / USB fallbacks.
+ * Local USB: prefer 127.0.0.1 (adb reverse). Skip random LAN hosts that
+ * often collide with other apps on :8000.
  */
 export function getApiBaseCandidates(): string[] {
   if (API_MODE === 'live') {
@@ -51,11 +53,12 @@ export function getApiBaseCandidates(): string[] {
   }
 
   const hosts: string[] = [DEV_IP];
-  const devHost = getDevHost();
-  if (devHost && devHost !== DEV_IP && devHost !== 'localhost') {
-    hosts.push(devHost);
+  // Emulator-only fallback. Physical USB phones use 127.0.0.1 via adb reverse.
+  // Skipping 10.0.2.2 avoids a long timeout hang on real devices.
+  const forcedHost = (process.env.EXPO_PUBLIC_API_HOST || '').trim();
+  if (forcedHost) {
+    hosts.unshift(forcedHost);
   }
-  hosts.push('10.0.2.2'); // Android emulator
   return [...new Set(hosts)].map((h) => getApiBaseUrl(h));
 }
 

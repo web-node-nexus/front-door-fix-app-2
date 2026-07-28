@@ -130,6 +130,15 @@ export type Booking = {
   invoice_available?: boolean;
 };
 
+export type SupportChatMessage = {
+  id: number;
+  body: string;
+  mine: boolean;
+  sender: string;
+  time?: string;
+  created_at?: string;
+};
+
 export type MobileNotification = {
   id: string;
   booking_id?: number | null;
@@ -175,21 +184,44 @@ function apiBaseCandidates(): string[] {
 function networkErrorMessage(tried: string[]): string {
   return (
     'Server connect nahi ho raha.\n\n' +
-    'Live API reach nahi ho pa rahi.\n' +
-    'Internet on rakho aur thodi der baad try karo.\n' +
+    'USB cable check karo aur PC pe website server chalao (port 8000).\n' +
     `Tried: ${tried.join(', ')}`
   );
+}
+
+const REQUEST_TIMEOUT_MS = 15000;
+
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = REQUEST_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (e) {
+    if (e instanceof Error && e.name === 'AbortError') {
+      throw new Error('Server response nahi aa raha. Thodi der baad try karo.');
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function apiErrorMessage(body: Record<string, unknown>, fallback: string): string {
   const errors = body?.errors;
   if (errors && typeof errors === 'object') {
-    for (const field of ['avatar', 'name', 'phone', 'pincode', 'booking_date', 'time_slot', 'service_id', 'address', 'city', 'email', 'password', 'payment_method']) {
+    for (const field of ['avatar', 'name', 'phone', 'pincode', 'booking_date', 'time_slot', 'service_id', 'address', 'city', 'email', 'password', 'current_password', 'password_confirmation', 'payment_method']) {
       const msg = (errors as Record<string, string[]>)[field]?.[0];
       if (msg) return msg;
     }
   }
-  return (body?.message as string) || fallback;
+  const message = body?.message;
+  if (typeof message === 'string' && message.trim()) {
+    if (/server error/i.test(message) || /<!DOCTYPE|<html/i.test(message)) {
+      return 'Server connect nahi ho paya. USB se phone jodo aur app dubara try karo.';
+    }
+    return message;
+  }
+  return fallback;
 }
 
 async function request<T>(path: string, options: RequestInit = {}, auth = false): Promise<T> {
@@ -212,7 +244,7 @@ async function request<T>(path: string, options: RequestInit = {}, auth = false)
     const url = `${base}${path}`;
 
     try {
-      const response = await fetch(url, { ...options, headers });
+      const response = await fetchWithTimeout(url, { ...options, headers });
 
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
@@ -259,7 +291,7 @@ async function fetchInvoiceHtml(bookingId: number): Promise<string> {
   for (const base of bases) {
     const url = `${base}/bookings/${bookingId}/invoice/download`;
     try {
-      const response = await fetch(url, { headers });
+      const response = await fetchWithTimeout(url, { headers });
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
         const message = apiErrorMessage(body, `Invoice download failed (${response.status})`);
@@ -305,7 +337,7 @@ async function uploadAvatarFile(photo: {
     // 1) Preferred: JSON base64 (works even when multipart is blocked)
     if (photo.base64 && photo.base64.length > 100) {
       try {
-        const response = await fetch(url, {
+        const response = await fetchWithTimeout(url, {
           method: 'POST',
           headers: {
             Accept: 'application/json',
@@ -483,6 +515,28 @@ export const api = {
     base64?: string;
     ext?: string;
   }) => uploadAvatarFile(photo),
+  changePassword: (payload: {
+    current_password: string;
+    password: string;
+    password_confirmation: string;
+  }) =>
+    request<{ success: boolean; message: string }>(
+      '/user/password',
+      { method: 'POST', body: JSON.stringify(payload) },
+      true,
+    ),
+  supportMessages: (since = 0) =>
+    request<{ messages: SupportChatMessage[]; agent_name: string; agent_online: boolean }>(
+      `/support/messages${since > 0 ? `?since=${since}` : ''}`,
+      {},
+      true,
+    ),
+  sendSupportMessage: (message: string) =>
+    request<{ success: boolean; messages: SupportChatMessage[] }>(
+      '/support/messages',
+      { method: 'POST', body: JSON.stringify({ message }) },
+      true,
+    ),
   bookings: () => request<Booking[]>('/bookings', {}, true),
   notifications: () =>
     request<{ notifications: MobileNotification[]; unread_count: number }>('/notifications', {}, true),

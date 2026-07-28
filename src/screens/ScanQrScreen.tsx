@@ -15,7 +15,9 @@ import { api } from '../api/client';
 import { BRAND } from '../config';
 
 function parseBookingCode(raw: string): string | null {
-  const match = raw.toUpperCase().match(/BK[0-9]{4,}/);
+  const upper = String(raw || '').toUpperCase();
+  // Accept plain BK codes and payment QR payloads like tn=BookingBK000123
+  const match = upper.match(/BK[0-9]{4,}/);
   return match ? match[0] : null;
 }
 
@@ -31,7 +33,17 @@ export default function ScanQrScreen() {
     if (!scanning || loading || handled.current) return;
     const code = parseBookingCode(data);
     if (!code) {
-      Alert.alert('Invalid QR', 'Please scan a valid Front Door booking QR code.');
+      handled.current = true;
+      setScanning(false);
+      Alert.alert('Invalid QR', 'Please scan a valid Front Door booking QR code (BK######).', [
+        {
+          text: 'Try again',
+          onPress: () => {
+            handled.current = false;
+            setScanning(true);
+          },
+        },
+      ]);
       return;
     }
 
@@ -46,17 +58,29 @@ export default function ScanQrScreen() {
       );
 
       if (!booking) {
-        Alert.alert('Booking not found', `No booking found for ${code} on your account.`);
-        handled.current = false;
-        setScanning(true);
+        Alert.alert('Booking not found', `No booking found for ${code} on your account.`, [
+          {
+            text: 'Try again',
+            onPress: () => {
+              handled.current = false;
+              setScanning(true);
+            },
+          },
+        ]);
         return;
       }
 
       nav.replace('BookingDetail', { booking });
     } catch (e) {
-      Alert.alert('Scan failed', e instanceof Error ? e.message : 'Could not load booking.');
-      handled.current = false;
-      setScanning(true);
+      Alert.alert('Scan failed', e instanceof Error ? e.message : 'Could not load booking.', [
+        {
+          text: 'Try again',
+          onPress: () => {
+            handled.current = false;
+            setScanning(true);
+          },
+        },
+      ]);
     } finally {
       setLoading(false);
     }

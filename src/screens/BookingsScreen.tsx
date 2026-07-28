@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Keyboard,
   Modal,
   Pressable,
   RefreshControl,
@@ -55,6 +56,10 @@ export default function BookingsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const { refresh: refreshActiveBooking } = useActiveBooking();
+  const listRef = useRef<FlatList<Booking>>(null);
+  const refreshActiveRef = useRef(refreshActiveBooking);
+  const hasLoadedRef = useRef(false);
+  refreshActiveRef.current = refreshActiveBooking;
 
   useEffect(() => {
     const tabParam = route.params?.tab;
@@ -62,26 +67,36 @@ export default function BookingsScreen() {
     else if (tabParam && TAB_KEYS.some((x) => x.key === tabParam)) setTab(tabParam);
   }, [route.params?.tab]);
 
-  const load = useCallback(async (refresh = false) => {
-    refresh ? setRefreshing(true) : setLoading(true);
+  const load = useCallback(async (mode: 'initial' | 'silent' | 'pull' = 'silent') => {
+    if (mode === 'pull') setRefreshing(true);
+    else if (mode === 'initial' || !hasLoadedRef.current) setLoading(true);
+
     try {
       const data = await api.bookings();
       setBookings(data);
       setError(null);
-      refreshActiveBooking();
+      refreshActiveRef.current();
     } catch (e) {
-      setBookings([]);
+      if (!hasLoadedRef.current) setBookings([]);
       setError(e instanceof Error ? e.message : 'Could not load bookings');
     } finally {
+      hasLoadedRef.current = true;
       setLoading(false);
       setRefreshing(false);
     }
   }, []);
 
   useFocusEffect(useCallback(() => {
-    load();
-    const timer = setInterval(() => load(true), 4000);
-    return () => clearInterval(timer);
+    load(hasLoadedRef.current ? 'silent' : 'initial');
+    // Soft background refresh — do not flash full-screen loading
+    const timer = setInterval(() => load('silent'), 15000);
+    return () => {
+      clearInterval(timer);
+      Keyboard.dismiss();
+      setSearch('');
+      setSearchOpen(false);
+      setFilterOpen(false);
+    };
   }, [load]));
 
   const counts = useMemo(() => {
@@ -139,7 +154,8 @@ export default function BookingsScreen() {
             placeholderTextColor={BRAND.light}
             value={search}
             onChangeText={setSearch}
-            autoFocus
+            autoFocus={false}
+            returnKeyType="search"
           />
         </View>
       )}
@@ -175,15 +191,18 @@ export default function BookingsScreen() {
         <View style={styles.errorBox}>
           <Ionicons name="cloud-offline-outline" size={20} color="#B91C1C" />
           <Text style={styles.errorText}>{error}</Text>
-          <Pressable onPress={() => load()}><Text style={styles.retryText}>{t('bookings.retry')}</Text></Pressable>
+          <Pressable onPress={() => load('silent')}><Text style={styles.retryText}>{t('bookings.retry')}</Text></Pressable>
         </View>
       )}
 
       <FlatList
+        ref={listRef}
         data={filtered}
         keyExtractor={(item) => String(item.id)}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         contentContainerStyle={[styles.list, { paddingBottom: screenPad.paddingBottom }]}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={BRAND.primary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load('pull')} tintColor={BRAND.primary} />}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="calendar-outline" size={56} color={BRAND.light} />
@@ -204,7 +223,7 @@ export default function BookingsScreen() {
           <BookingCard
             booking={item}
             onPress={() => nav.navigate('BookingDetail', { booking: item })}
-            onRefresh={() => load(true)}
+            onRefresh={() => load('silent')}
             onTrack={(b) => nav.navigate('LiveTracking', { booking: b })}
             onReschedule={(b) => nav.navigate('RescheduleBooking', { booking: b })}
             onCancel={(b) => nav.navigate('CancelBooking', { booking: b })}

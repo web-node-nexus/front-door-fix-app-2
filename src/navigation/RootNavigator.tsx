@@ -48,6 +48,7 @@ import WishlistScreen from '../screens/WishlistScreen';
 
 import SupportScreen from '../screens/SupportScreen';
 import RaiseTicketScreen from '../screens/support/RaiseTicketScreen';
+import LiveChatScreen from '../screens/support/LiveChatScreen';
 import SafetyScreen from '../screens/support/SafetyScreen';
 import SupportFAQScreen from '../screens/support/SupportFAQScreen';
 import SupportTicketDetailScreen from '../screens/support/SupportTicketDetailScreen';
@@ -114,6 +115,7 @@ const profileScreens = [
 ] as const;
 
 const supportScreens = [
+  { name: 'LiveChat', component: LiveChatScreen, title: 'Live Chat' },
   { name: 'SupportFAQ', component: SupportFAQScreen, title: 'All FAQs' },
   { name: 'SupportTickets', component: SupportTicketsScreen, title: 'Your Tickets' },
   { name: 'SupportTicketDetail', component: SupportTicketDetailScreen, title: 'Ticket Details' },
@@ -216,10 +218,12 @@ function AppStack() {
           name={s.name}
           component={s.component}
           options={{
+            headerShown: s.name === 'LiveChat' || s.name === 'RaiseTicket' || s.name === 'SupportTickets' || s.name === 'SupportTicketDetail' ? false : true,
             headerStyle: { backgroundColor: BRAND.canvas },
             headerTintColor: BRAND.ink,
             headerTitle: s.title,
             headerTitleStyle: { fontWeight: '800' },
+            contentStyle: { backgroundColor: BRAND.surface },
           }}
         />
       ))}

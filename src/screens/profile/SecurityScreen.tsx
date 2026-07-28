@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { api } from '../../api/client';
 import { BRAND } from '../../config';
 import { useFeedback } from '../../context/FeedbackContext';
 import { useProfile } from '../../context/ProfileContext';
@@ -10,11 +11,12 @@ export default function SecurityScreen() {
   const { settings, updateSettings } = useProfile();
   const { showSuccess, showWarning, showInfo } = useFeedback();
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [currentPass, setCurrentPass] = useState('');
   const [newPass, setNewPass] = useState('');
   const [confirmPass, setConfirmPass] = useState('');
 
-  const savePassword = () => {
+  const savePassword = async () => {
     if (!currentPass || !newPass || !confirmPass) {
       showWarning('Missing fields', 'Please fill all password fields.');
       return;
@@ -27,11 +29,24 @@ export default function SecurityScreen() {
       showWarning('Mismatch', 'New password and confirm password must match.');
       return;
     }
-    setPasswordOpen(false);
-    setCurrentPass('');
-    setNewPass('');
-    setConfirmPass('');
-    showSuccess('Password updated', 'Your password has been changed successfully.');
+
+    setSaving(true);
+    try {
+      const res = await api.changePassword({
+        current_password: currentPass,
+        password: newPass,
+        password_confirmation: confirmPass,
+      });
+      setPasswordOpen(false);
+      setCurrentPass('');
+      setNewPass('');
+      setConfirmPass('');
+      showSuccess('Password updated', res.message || 'Your password has been changed successfully.');
+    } catch (e) {
+      showWarning('Password not updated', e instanceof Error ? e.message : 'Could not change password.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -96,8 +111,8 @@ export default function SecurityScreen() {
               value={confirmPass}
               onChangeText={setConfirmPass}
             />
-            <Pressable style={styles.saveBtn} onPress={savePassword}>
-              <Text style={styles.saveText}>Update Password</Text>
+            <Pressable style={[styles.saveBtn, saving && { opacity: 0.7 }]} onPress={savePassword} disabled={saving}>
+              <Text style={styles.saveText}>{saving ? 'Updating...' : 'Update Password'}</Text>
             </Pressable>
             <Pressable onPress={() => setPasswordOpen(false)}>
               <Text style={styles.cancelText}>Cancel</Text>

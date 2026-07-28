@@ -7,6 +7,7 @@ import { BRAND } from '../config';
 import { useCart } from '../context/CartContext';
 import { useProfile } from '../context/ProfileContext';
 import { categoryIcon, durationLabel, serviceImageUrl } from '../utils/serviceImagery';
+import { stripHtml } from '../utils/stripHtml';
 
 type Props = {
   service: Service;
@@ -23,6 +24,8 @@ export default function ServiceCard({ service, onPress, onBook, showFavorite, sh
   const qty = getQuantity(service.id);
   const slug = service.category?.slug;
 
+  const plainDescription = stripHtml(service.description);
+
   const shareService = async () => {
     const price = `₹${Number(service.price).toLocaleString('en-IN')}`;
     const duration = durationLabel(service.duration_hours);
@@ -30,7 +33,7 @@ export default function ServiceCard({ service, onPress, onBook, showFavorite, sh
       `Check out ${service.name} on Front Door!`,
       service.category?.name ? `Category: ${service.category.name}` : null,
       `Price: ${price} · ${duration}`,
-      service.description || 'Book verified home service professionals near you.',
+      plainDescription || 'Book verified home service professionals near you.',
     ].filter(Boolean).join('\n');
 
     try {
@@ -64,11 +67,9 @@ export default function ServiceCard({ service, onPress, onBook, showFavorite, sh
           <Text style={styles.categoryTag}>{service.category.name}</Text>
         ) : null}
         <Text style={styles.title} numberOfLines={2}>{service.name}</Text>
-        {service.description ? (
-          <Text style={styles.desc} numberOfLines={2}>{service.description}</Text>
-        ) : (
-          <Text style={styles.desc} numberOfLines={2}>Verified professionals · Best price guarantee</Text>
-        )}
+        <Text style={styles.desc} numberOfLines={2}>
+          Verified professionals · Best price guarantee
+        </Text>
 
         <View style={styles.meta}>
           <View style={styles.duration}>

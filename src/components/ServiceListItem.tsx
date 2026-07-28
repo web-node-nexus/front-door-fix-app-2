@@ -20,13 +20,9 @@ export default function ServiceListItem({ service, onPress }: Props) {
     <Pressable style={styles.row} onPress={onPress}>
       <View style={styles.info}>
         <Text style={styles.name} numberOfLines={2}>{service.name}</Text>
-        {service.description ? (
-          <Text style={styles.desc} numberOfLines={2}>{service.description}</Text>
-        ) : (
-          <Text style={styles.desc} numberOfLines={1}>
-            {durationLabel(service.duration_hours)} · Verified professionals
-          </Text>
-        )}
+        <Text style={styles.desc} numberOfLines={1}>
+          {durationLabel(service.duration_hours)} · Verified professionals
+        </Text>
         <View style={styles.priceRow}>
           <Text style={styles.price}>₹{price.toLocaleString('en-IN')}</Text>
           {service.duration_hours ? (

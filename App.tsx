@@ -38,12 +38,13 @@ function AppShell() {
 
   const onSplashFinish = useCallback(() => setSplashDone(true), []);
 
-  // Keep splash mounted until auth + onboarding flags are ready so we don't
-  // remount RootNavigator (looks like a full app reload).
-  const ready = splashDone && !initializing && onboardingDone !== null;
-
-  if (!ready) {
+  // Never remount splash after it finishes — remounting looks like infinite loading.
+  if (!splashDone) {
     return <SplashScreen onFinish={onSplashFinish} />;
+  }
+
+  if (initializing || onboardingDone === null) {
+    return null;
   }
 
   if (!onboardingDone) {

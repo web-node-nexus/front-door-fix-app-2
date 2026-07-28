@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   Alert,
+  Keyboard,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -19,6 +20,7 @@ import { useNotifications } from '../context/NotificationContext';
 import { useProfile } from '../context/ProfileContext';
 import { api, Booking } from '../api/client';
 import { useScreenPadding } from '../hooks/useScreenPadding';
+import { navigationRef } from '../navigation/navigationRef';
 
 const QUICK_ACTIONS = [
   { icon: 'star' as const, bg: '#FCE7F3', titleKey: 'profile.quick.bookings', subKey: 'profile.quick.bookingsSub', route: 'BookingsTab', tab: 'Upcoming' },
@@ -49,6 +51,7 @@ export default function ProfileScreen() {
   const { walletBalance, cashbackEarned, isPremium, rewardPoints } = useProfile();
   const screenPad = useScreenPadding({ headerless: true });
   const [counts, setCounts] = useState({ Upcoming: 0, Active: 0, Completed: 0, Cancelled: 0 });
+  const scrollRef = useRef<ScrollView>(null);
 
   useFocusEffect(useCallback(() => {
     api.bookings().then((list: Booking[]) => {
@@ -56,9 +59,22 @@ export default function ProfileScreen() {
       list.forEach((b) => { c[tabFor(b.status)] += 1; });
       setCounts(c);
     }).catch(() => {});
+
+    return () => {
+      Keyboard.dismiss();
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+    };
   }, []));
 
-  const go = (screen: string, params?: object) => nav.navigate(screen, params);
+  const go = (screen: string, params?: object) => {
+    // Profile is inside Tabs; Wallet/Subscription/etc live on the Main stack.
+    // Root navigate is reliable (same pattern as Book Now / Live Tracking).
+    if (navigationRef.isReady()) {
+      navigationRef.navigate('Main' as never, { screen, params } as never);
+      return;
+    }
+    nav.navigate(screen, params);
+  };
   const goBookings = (tab: string) => nav.navigate('Bookings', { tab });
 
   const displayName = user?.name || 'Customer';
@@ -95,9 +111,11 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView
+      ref={scrollRef}
       style={styles.root}
       contentContainerStyle={[styles.content, { paddingTop: screenPad.paddingTop, paddingBottom: screenPad.paddingBottom + 80 }]}
       showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
     >
       {/* Header */}
       <View style={styles.header}>
@@ -133,19 +151,14 @@ export default function ProfileScreen() {
             </View>
             <Text style={styles.contact}>{displayPhone}</Text>
             <Text style={styles.contact}>{displayEmail}</Text>
-            {isPremium ? (
+            <Pressable onPress={() => go('Subscription')} hitSlop={8}>
               <View style={styles.premiumBadge}>
-                <Ionicons name="diamond" size={12} color="#fff" />
-                <Text style={styles.premiumText}>{t('profile.premium')}</Text>
+                <Ionicons name={isPremium ? 'diamond' : 'diamond-outline'} size={12} color="#fff" />
+                <Text style={styles.premiumText}>
+                  {isPremium ? t('profile.premium') : t('profile.upgradePremium')}
+                </Text>
               </View>
-            ) : (
-              <Pressable onPress={() => go('Subscription')}>
-                <View style={styles.premiumBadge}>
-                  <Ionicons name="diamond-outline" size={12} color="#fff" />
-                  <Text style={styles.premiumText}>{t('profile.upgradePremium')}</Text>
-                </View>
-              </Pressable>
-            )}
+            </Pressable>
           </View>
         </View>
 
@@ -235,22 +248,22 @@ export default function ProfileScreen() {
         <View style={styles.rewardBox}><Text style={styles.rewardVal}>2</Text><Text style={styles.rewardLabel}>{t('profile.giftCards')}</Text></View>
       </View>
 
-      {/* Premium Banner */}
-      <LinearGradient colors={['#F3E8FF', '#FDF4FF']} style={styles.banner}>
-        <Ionicons name="diamond" size={28} color={BRAND.purple} />
-        <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text style={styles.bannerTitle}>{t('profile.banner.premium')}</Text>
-          <Text style={styles.bannerSub}>{t('profile.banner.premiumSub')}</Text>
-        </View>
-        <Pressable onPress={() => go('Subscription')}>
+      {/* Premium Banner — whole row tappable (LinearGradient alone often eats Android presses) */}
+      <Pressable onPress={() => go('Subscription')} style={styles.bannerPress}>
+        <LinearGradient colors={['#F3E8FF', '#FDF4FF']} style={styles.banner} pointerEvents="none">
+          <Ionicons name="diamond" size={28} color={BRAND.purple} />
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={styles.bannerTitle}>{t('profile.banner.premium')}</Text>
+            <Text style={styles.bannerSub}>{t('profile.banner.premiumSub')}</Text>
+          </View>
           <LinearGradient colors={[BRAND.purple, BRAND.primary]} style={styles.upgradeBtn}>
             <Text style={styles.upgradeText}>{t('profile.upgrade')}</Text>
           </LinearGradient>
-        </Pressable>
-      </LinearGradient>
+        </LinearGradient>
+      </Pressable>
 
       {/* Refer Banner */}
-      <LinearGradient colors={['#FCE7F3', '#FDF4FF']} style={styles.banner}>
+      <LinearGradient colors={['#FCE7F3', '#FDF4FF']} style={[styles.banner, { marginBottom: 12 }]}>
         <Text style={{ fontSize: 28 }}>🎁</Text>
         <View style={{ flex: 1, marginLeft: 12 }}>
           <Text style={styles.bannerTitle}>{t('profile.banner.refer')}</Text>
@@ -361,7 +374,8 @@ const styles = StyleSheet.create({
   rewardBox: { flex: 1, backgroundColor: BRAND.canvas, borderRadius: 16, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: BRAND.border },
   rewardVal: { fontSize: 18, fontWeight: '800', color: BRAND.primary },
   rewardLabel: { fontSize: 10, color: BRAND.muted, marginTop: 4, textAlign: 'center' },
-  banner: { flexDirection: 'row', alignItems: 'center', borderRadius: 20, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: BRAND.border },
+  bannerPress: { marginBottom: 12, borderRadius: 20, overflow: 'hidden' },
+  banner: { flexDirection: 'row', alignItems: 'center', borderRadius: 20, padding: 16, borderWidth: 1, borderColor: BRAND.border },
   bannerTitle: { fontSize: 14, fontWeight: '800', color: BRAND.ink },
   bannerSub: { fontSize: 11, color: BRAND.muted, marginTop: 2 },
   upgradeBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 },

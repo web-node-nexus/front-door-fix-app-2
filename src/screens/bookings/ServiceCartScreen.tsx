@@ -95,7 +95,7 @@ export default function ServiceCartScreen() {
             </View>
           </ScrollView>
 
-          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+          <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
             <View>
               <Text style={styles.footerLabel}>₹{totalAmount.toLocaleString('en-IN')}</Text>
               <Text style={styles.footerSub}>{itemCount} services · taxes included</Text>

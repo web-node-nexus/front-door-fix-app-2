@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
-import React, { useMemo, useState } from 'react';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Alert,
+  Keyboard,
   Linking,
   Modal,
   Pressable,
@@ -19,7 +20,7 @@ import { QUICK_HELP, RECENT_TICKETS, SUPPORT_PHONE, SUPPORT_WHATSAPP } from '../
 import { useScreenPadding } from '../hooks/useScreenPadding';
 
 const ASSIST_OPTIONS = [
-  { icon: 'chatbubble-ellipses', color: '#FCE7F3', id: 'live', titleKey: 'support.liveChat', subKey: 'support.liveChatSub', badgeKey: 'support.online', badgeIcon: 'ellipse', badgeColor: '#10B981' },
+  { icon: 'chatbubble-ellipses', color: '#FCE7F3', id: 'live', titleKey: 'support.liveChat', subKey: 'support.liveChatSub', badgeKey: 'support.online', badgeIcon: 'ellipse', badgeColor: BRAND.primary },
   { icon: 'logo-whatsapp', color: '#DCFCE7', id: 'wa', titleKey: 'support.whatsapp', subKey: 'support.whatsappSub', badgeKey: 'support.quickReply', badgeIcon: 'flash', badgeColor: BRAND.primary },
   { icon: 'call', color: '#F3E8FF', id: 'call', titleKey: 'support.call', subKey: 'support.callSub', badgeKey: 'support.callHours', badgeIcon: 'time-outline', badgeColor: BRAND.muted },
   { icon: 'ticket', color: '#FFEDD5', id: 'ticket', titleKey: 'support.ticket', subKey: 'support.ticketSub', badgeKey: 'support.trackStatus', badgeIcon: 'home-outline', badgeColor: BRAND.muted },
@@ -38,6 +39,18 @@ export default function SupportScreen() {
   const screenPad = useScreenPadding({ headerless: true, extraBottom: 100 });
   const [search, setSearch] = useState('');
   const [faqModal, setFaqModal] = useState<{ title: string; answer: string } | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        Keyboard.dismiss();
+        setSearch('');
+        setFaqModal(null);
+        scrollRef.current?.scrollTo({ y: 0, animated: false });
+      };
+    }, []),
+  );
 
   const filteredHelp = useMemo(() => {
     if (!search.trim()) return QUICK_HELP;
@@ -45,7 +58,7 @@ export default function SupportScreen() {
     return QUICK_HELP.filter((h) => h.title.toLowerCase().includes(q) || h.answer.toLowerCase().includes(q));
   }, [search]);
 
-  const openChat = () => Linking.openURL(SUPPORT_WHATSAPP).catch(() => Alert.alert(t('support.liveChat'), 'WhatsApp...'));
+  const openChat = () => nav.navigate('LiveChat');
   const openCall = () => Linking.openURL(`tel:${SUPPORT_PHONE}`).catch(() => Alert.alert(t('support.call'), SUPPORT_PHONE));
   const openEmergency = () => {
     Alert.alert(t('support.emergency'), t('support.emergencyConfirm'), [
@@ -67,8 +80,11 @@ export default function SupportScreen() {
   return (
     <View style={styles.root}>
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={[styles.content, { paddingTop: screenPad.paddingTop, paddingBottom: screenPad.paddingBottom }]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
         {/* Header */}
         <View style={styles.header}>
