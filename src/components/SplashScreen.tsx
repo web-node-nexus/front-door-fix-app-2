@@ -41,10 +41,21 @@ export default function SplashScreen({ onFinish }: Props) {
         Animated.timing(exitScale, { toValue: 1.04, duration: 380, useNativeDriver: true }),
       ]),
     ]);
-    anim.start(({ finished }) => {
-      if (finished) onFinishRef.current();
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      onFinishRef.current();
+    };
+    // Hard failsafe — never stay on splash forever.
+    const safety = setTimeout(finish, 3500);
+    anim.start(({ finished: ok }) => {
+      if (ok) finish();
     });
-    return () => anim.stop();
+    return () => {
+      clearTimeout(safety);
+      anim.stop();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only
   }, []);
 

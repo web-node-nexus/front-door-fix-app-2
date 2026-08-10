@@ -65,6 +65,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let active = true;
+    const safety = setTimeout(() => {
+      if (active) setInitializing(false);
+    }, 8000);
+
     (async () => {
       try {
         const restored = await api.restoreSession();
@@ -79,12 +83,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
         if (active) setUser(restored);
+      } catch {
+        // Offline / API timeout — still open app as guest
       } finally {
+        clearTimeout(safety);
         if (active) setInitializing(false);
       }
     })();
     return () => {
       active = false;
+      clearTimeout(safety);
     };
   }, []);
 

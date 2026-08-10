@@ -1,18 +1,19 @@
 import Constants from 'expo-constants';
 
 /**
- * Release APK hits ONLY this production API (no LAN / USB / tunnel):
+ * Release APK hits ONLY this production API:
  *   https://frontdoor.in/api
  */
-export const API_MODE: 'live' | 'local' = __DEV__ ? 'local' : 'live';
+/** Expo Go / local: hit PC Laravel API. Release APK builds should use 'live'. */
+export const API_MODE: 'live' | 'local' = 'local';
 
-/** Origin only — app appends /api automatically → https://frontdoor.in/api */
+/** Origin only — app appends /api automatically -> https://frontdoor.in/api */
 export const LIVE_ORIGIN = 'https://frontdoor.in';
 
 export const PUBLIC_ORIGIN = 'https://frontdoor.in';
 
-// Dev-only (Expo Go / USB)
-export const DEV_IP = '127.0.0.1';
+// Dev-only (Expo Go / Wi‑Fi). USB reverse optional; same Wi‑Fi pe LAN IP use karo.
+export const DEV_IP = '192.168.1.9';
 
 /** Expo packager host — same IP phone uses for Metro (USB or WiFi). */
 export function getDevHost(): string {
@@ -29,37 +30,39 @@ export function getDevHost(): string {
   return DEV_IP;
 }
 
-const API_PORT = 8000;
+const API_PORT = 8001;
 
 export function getApiBaseUrl(host = getDevHost()) {
   if (API_MODE === 'live') return `${LIVE_ORIGIN}/api`;
+  if (/\.exp\.direct$/i.test(host) || host === 'localhost') host = DEV_IP;
   return `http://${host}:${API_PORT}/api`;
 }
 
 export function getAssetBaseUrl(host = getDevHost()) {
   if (API_MODE === 'live') return LIVE_ORIGIN;
+  if (/\.exp\.direct$/i.test(host) || host === 'localhost') host = DEV_IP;
   return `http://${host}:${API_PORT}`;
 }
 
 /**
  * Ordered list of API base URLs to try.
  * Live/release: public origin only — no LAN / USB fallbacks.
- * Local USB: prefer 127.0.0.1 (adb reverse). Skip random LAN hosts that
- * often collide with other apps on :8000.
  */
 export function getApiBaseCandidates(): string[] {
   if (API_MODE === 'live') {
     return [`${LIVE_ORIGIN}/api`];
   }
 
-  const hosts: string[] = [DEV_IP];
-  // Emulator-only fallback. Physical USB phones use 127.0.0.1 via adb reverse.
-  // Skipping 10.0.2.2 avoids a long timeout hang on real devices.
+  // Tunnel host (*.exp.direct) pe Laravel nahi chalta — skip, LAN / USB reverse use karo.
+  const metroHost = getDevHost();
+  const hosts: string[] = [];
   const forcedHost = (process.env.EXPO_PUBLIC_API_HOST || '').trim();
-  if (forcedHost) {
-    hosts.unshift(forcedHost);
+  if (forcedHost) hosts.push(forcedHost);
+  if (metroHost && !/\.exp\.direct$/i.test(metroHost) && metroHost !== 'localhost') {
+    hosts.push(metroHost);
   }
-  return [...new Set(hosts)].map((h) => getApiBaseUrl(h));
+  hosts.push(DEV_IP, '127.0.0.1');
+  return [...new Set(hosts.filter(Boolean))].map((h) => getApiBaseUrl(h));
 }
 
 export const API_BASE_URL = getApiBaseUrl();
@@ -83,4 +86,4 @@ export const BRAND = {
 };
 
 /** Rebuild stamp for fresh APK */
-export const BUILD_STAMP = '2026-07-23 16:40:00';
+export const BUILD_STAMP = '2026-07-31 01:55:00';

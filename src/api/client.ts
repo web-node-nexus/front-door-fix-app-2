@@ -1,6 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 
-import { API_BASE_URL, getApiBaseCandidates } from '../config';
+import { API_BASE_URL, API_MODE, getApiBaseCandidates } from '../config';
 import { proApi } from './pro';
 
 export { proApi };
@@ -77,6 +77,7 @@ export type Service = {
   slug: string;
   description?: string;
   price: string | number;
+  pricing_unit?: string | null;
   duration_hours?: number;
   image?: string;
   bookings_count?: number;
@@ -182,6 +183,13 @@ function apiBaseCandidates(): string[] {
 }
 
 function networkErrorMessage(tried: string[]): string {
+  if (API_MODE === 'live') {
+    return (
+      'Server connect nahi ho raha.\n\n' +
+      'Internet on rakho aur thodi der baad try karo.\n' +
+      `API: ${tried.join(', ')}`
+    );
+  }
   return (
     'Server connect nahi ho raha.\n\n' +
     'USB cable check karo aur PC pe website server chalao (port 8000).\n' +
@@ -189,7 +197,7 @@ function networkErrorMessage(tried: string[]): string {
   );
 }
 
-const REQUEST_TIMEOUT_MS = 15000;
+const REQUEST_TIMEOUT_MS = 8000;
 
 async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = REQUEST_TIMEOUT_MS): Promise<Response> {
   const controller = new AbortController();
@@ -217,7 +225,9 @@ function apiErrorMessage(body: Record<string, unknown>, fallback: string): strin
   const message = body?.message;
   if (typeof message === 'string' && message.trim()) {
     if (/server error/i.test(message) || /<!DOCTYPE|<html/i.test(message)) {
-      return 'Server connect nahi ho paya. USB se phone jodo aur app dubara try karo.';
+      return API_MODE === 'live'
+        ? 'Server temporarily unavailable hai. Internet check karke dubara try karo.'
+        : 'Server connect nahi ho paya. USB se phone jodo aur app dubara try karo.';
     }
     return message;
   }
@@ -248,10 +258,17 @@ async function request<T>(path: string, options: RequestInit = {}, auth = false)
 
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
-        const message = apiErrorMessage(body, `Request failed (${response.status})`);
+        let message = apiErrorMessage(body, `Request failed (${response.status})`);
+        if (API_MODE === 'live' && (response.status === 403 || response.status === 502 || response.status === 503)) {
+          message = 'Server available nahi hai abhi. Thodi der baad try karo.';
+        }
         lastHttpError = new Error(message);
         // Wrong password etc. — same on all hosts; stop trying.
         if (response.status === 401 || response.status === 422) {
+          throw lastHttpError;
+        }
+        // Live API: do not keep retrying the same host on hard failures.
+        if (API_MODE === 'live' && (response.status === 403 || response.status === 404 || response.status >= 500)) {
           throw lastHttpError;
         }
         continue;
@@ -411,7 +428,9 @@ async function uploadAvatarFile(photo: {
   if (lastHttpError) throw lastHttpError;
   if (lastNetworkError) {
     throw new Error(
-      'Could not reach server to upload photo. Same WiFi pe raho aur PC pe website server chalao (port 8000).',
+      API_MODE === 'live'
+        ? 'Could not reach server to upload photo. Internet check karke dubara try karo.'
+        : 'Could not reach server to upload photo. Same WiFi pe raho aur PC pe website server chalao (port 8000).',
     );
   }
   throw new Error(networkErrorMessage(bases));
@@ -574,6 +593,8 @@ export const api = {
     booking_date: string;
     time_slot: string;
     payment_method?: string;
+    measure?: number;
+    measure_unit?: 'inch' | 'feet' | 'kg';
   }) =>
     request<{ booking: Booking; tracking: TrackingPayload }>(
       '/bookings',

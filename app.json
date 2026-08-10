@@ -16,7 +16,7 @@
       "bundleIdentifier": "in.frontdoorfix.app"
     },
     "android": {
-      "package": "in.frontdoorfix.app",
+      "package": "in.frontdoor.app.release",
       "versionCode": 1,
       "usesCleartextTraffic": true,
       "permissions": [

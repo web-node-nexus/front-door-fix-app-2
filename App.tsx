@@ -2,6 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as ExpoSplash from 'expo-splash-screen';
 import React, { useCallback, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import SplashScreen from './src/components/SplashScreen';
 import { ActiveBookingProvider } from './src/context/ActiveBookingContext';
@@ -14,6 +15,7 @@ import { NotificationProvider } from './src/context/NotificationContext';
 import { ProfileProvider } from './src/context/ProfileContext';
 import RootNavigator from './src/navigation/RootNavigator';
 import OnboardingScreen from './src/screens/OnboardingScreen';
+import { BRAND } from './src/config';
 
 ExpoSplash.preventAutoHideAsync().catch(() => {});
 
@@ -43,8 +45,13 @@ function AppShell() {
     return <SplashScreen onFinish={onSplashFinish} />;
   }
 
+  // Avoid blank white screen while auth/onboarding hydrate.
   if (initializing || onboardingDone === null) {
-    return null;
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' }}>
+        <ActivityIndicator size="large" color={BRAND.primary} />
+      </View>
+    );
   }
 
   if (!onboardingDone) {

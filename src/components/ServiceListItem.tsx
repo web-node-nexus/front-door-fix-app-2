@@ -5,6 +5,7 @@ import { Service } from '../api/client';
 import { BRAND } from '../config';
 import { useCart } from '../context/CartContext';
 import { durationLabel } from '../utils/serviceImagery';
+import { isAluminiumGlassService } from '../utils/measureUnits';
 
 type Props = {
   service: Service;
@@ -15,6 +16,7 @@ export default function ServiceListItem({ service, onPress }: Props) {
   const { getQuantity, addItem, updateQuantity } = useCart();
   const qty = getQuantity(service.id);
   const price = Number(service.price);
+  const alumGlass = isAluminiumGlassService(service);
 
   return (
     <Pressable style={styles.row} onPress={onPress}>
@@ -31,7 +33,11 @@ export default function ServiceListItem({ service, onPress }: Props) {
         </View>
       </View>
 
-      {qty > 0 ? (
+      {alumGlass ? (
+        <Pressable style={styles.addBtn} onPress={onPress}>
+          <Text style={styles.addText}>{qty > 0 ? 'Edit' : 'Add'}</Text>
+        </Pressable>
+      ) : qty > 0 ? (
         <View style={styles.stepper}>
           <Pressable
             style={styles.stepBtn}

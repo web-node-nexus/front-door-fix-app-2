@@ -8,6 +8,7 @@ import { useCart } from '../context/CartContext';
 import { useProfile } from '../context/ProfileContext';
 import { categoryIcon, durationLabel, serviceImageUrl } from '../utils/serviceImagery';
 import { stripHtml } from '../utils/stripHtml';
+import { isAluminiumGlassService, lineAmount, measureLabel } from '../utils/measureUnits';
 
 type Props = {
   service: Service;
@@ -19,10 +20,12 @@ type Props = {
 
 export default function ServiceCard({ service, onPress, onBook, showFavorite, showCart }: Props) {
   const { isFavorite, toggleFavorite } = useProfile();
-  const { getQuantity, addItem, updateQuantity } = useCart();
+  const { getQuantity, addItem, updateQuantity, getItem } = useCart();
   const fav = isFavorite(service.id);
   const qty = getQuantity(service.id);
+  const cartItem = getItem(service.id);
   const slug = service.category?.slug;
+  const alumGlass = isAluminiumGlassService(service);
 
   const plainDescription = stripHtml(service.description);
 
@@ -81,10 +84,27 @@ export default function ServiceCard({ service, onPress, onBook, showFavorite, sh
             <Text style={styles.price}>₹{Number(service.price).toLocaleString('en-IN')}</Text>
           </View>
         </View>
+        {alumGlass && cartItem?.measureUnit ? (
+          <Text style={styles.measureHint}>
+            {cartItem.measure} {measureLabel(cartItem.measureUnit)} · ₹
+            {lineAmount(Number(service.price), cartItem.measure ?? 1, cartItem.quantity).toLocaleString('en-IN')}
+          </Text>
+        ) : null}
 
         <View style={styles.actions}>
           {showCart ? (
-            qty > 0 ? (
+            alumGlass ? (
+              <Pressable
+                style={styles.addBtn}
+                onPress={(e) => {
+                  e.stopPropagation?.();
+                  onPress?.();
+                }}
+              >
+                <Ionicons name="cart-outline" size={16} color={BRAND.primary} />
+                <Text style={styles.addText}>{qty > 0 ? 'Edit unit' : 'Add'}</Text>
+              </Pressable>
+            ) : qty > 0 ? (
               <View style={styles.stepper}>
                 <Pressable
                   style={styles.stepBtn}
@@ -220,6 +240,12 @@ const styles = StyleSheet.create({
   durationText: { fontSize: 12, color: BRAND.ink, fontWeight: '700' },
   priceWrap: { alignItems: 'flex-end' },
   priceLabel: { fontSize: 10, color: BRAND.muted, fontWeight: '600' },
+  measureHint: {
+    marginTop: 8,
+    fontSize: 12,
+    fontWeight: '700',
+    color: BRAND.primary,
+  },
   price: { fontSize: 20, fontWeight: '800', color: BRAND.primary, marginTop: 1 },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14 },
   addBtn: {

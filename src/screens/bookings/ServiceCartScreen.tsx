@@ -8,6 +8,11 @@ import { BRAND } from '../../config';
 import { useCart } from '../../context/CartContext';
 import { useScreenPadding } from '../../hooks/useScreenPadding';
 import { durationLabel } from '../../utils/serviceImagery';
+import {
+  isAluminiumGlassService,
+  lineAmount,
+  measureLabel,
+} from '../../utils/measureUnits';
 
 export default function ServiceCartScreen() {
   const nav = useNavigation<any>();
@@ -42,42 +47,51 @@ export default function ServiceCartScreen() {
             <Text style={styles.sectionLabel}>
               {itemCount} {itemCount === 1 ? 'service' : 'services'} selected
             </Text>
-            {items.map((item) => (
-              <View key={item.service.id} style={styles.item}>
-                <View style={styles.itemInfo}>
-                  <Text style={styles.itemName}>{item.service.name}</Text>
-                  {item.service.category?.name ? (
-                    <Text style={styles.itemCat}>{item.service.category.name}</Text>
-                  ) : null}
-                  <Text style={styles.itemMeta}>
-                    {durationLabel(item.service.duration_hours)} · ₹{Number(item.service.price).toLocaleString('en-IN')} each
-                  </Text>
-                </View>
-                <View style={styles.itemRight}>
-                  <Text style={styles.itemTotal}>
-                    ₹{(Number(item.service.price) * item.quantity).toLocaleString('en-IN')}
-                  </Text>
-                  <View style={styles.stepper}>
-                    <Pressable
-                      style={styles.stepBtn}
-                      onPress={() => updateQuantity(item.service.id, item.quantity - 1)}
-                    >
-                      <Ionicons name="remove" size={16} color={BRAND.primary} />
-                    </Pressable>
-                    <Text style={styles.qty}>{item.quantity}</Text>
-                    <Pressable
-                      style={styles.stepBtn}
-                      onPress={() => updateQuantity(item.service.id, item.quantity + 1)}
-                    >
-                      <Ionicons name="add" size={16} color={BRAND.primary} />
+            {items.map((item) => {
+              const alum = isAluminiumGlassService(item.service);
+              const line = alum
+                ? lineAmount(Number(item.service.price), item.measure ?? 1, item.quantity)
+                : Number(item.service.price) * item.quantity;
+
+              return (
+                <View key={item.service.id} style={styles.item}>
+                  <View style={styles.itemInfo}>
+                    <Text style={styles.itemName}>{item.service.name}</Text>
+                    {item.service.category?.name ? (
+                      <Text style={styles.itemCat}>{item.service.category.name}</Text>
+                    ) : null}
+                    <Text style={styles.itemMeta}>
+                      {alum && item.measureUnit
+                        ? `${item.measure} ${measureLabel(item.measureUnit)} · ₹${Number(item.service.price).toLocaleString('en-IN')}/${measureLabel(item.measureUnit).toLowerCase()}`
+                        : `${durationLabel(item.service.duration_hours)} · ₹${Number(item.service.price).toLocaleString('en-IN')} each`}
+                    </Text>
+                  </View>
+                  <View style={styles.itemRight}>
+                    <Text style={styles.itemTotal}>₹{line.toLocaleString('en-IN')}</Text>
+                    {!alum ? (
+                      <View style={styles.stepper}>
+                        <Pressable
+                          style={styles.stepBtn}
+                          onPress={() => updateQuantity(item.service.id, item.quantity - 1)}
+                        >
+                          <Ionicons name="remove" size={16} color={BRAND.primary} />
+                        </Pressable>
+                        <Text style={styles.qty}>{item.quantity}</Text>
+                        <Pressable
+                          style={styles.stepBtn}
+                          onPress={() => updateQuantity(item.service.id, item.quantity + 1)}
+                        >
+                          <Ionicons name="add" size={16} color={BRAND.primary} />
+                        </Pressable>
+                      </View>
+                    ) : null}
+                    <Pressable onPress={() => removeItem(item.service.id)} hitSlop={8}>
+                      <Text style={styles.remove}>Remove</Text>
                     </Pressable>
                   </View>
-                  <Pressable onPress={() => removeItem(item.service.id)} hitSlop={8}>
-                    <Text style={styles.remove}>Remove</Text>
-                  </Pressable>
                 </View>
-              </View>
-            ))}
+              );
+            })}
 
             <View style={styles.billCard}>
               <View style={styles.billRow}>

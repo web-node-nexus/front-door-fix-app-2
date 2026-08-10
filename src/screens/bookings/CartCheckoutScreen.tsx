@@ -106,7 +106,10 @@ export default function CartCheckoutScreen() {
 
     try {
       for (const item of items) {
-        for (let i = 0; i < item.quantity; i += 1) {
+        const alum = item.measureUnit && item.service.category?.slug === 'aluminium-glass-work';
+        const loops = alum ? 1 : item.quantity;
+
+        for (let i = 0; i < loops; i += 1) {
           const res = await api.storeBooking({
             service_id: item.service.id,
             address,
@@ -115,6 +118,12 @@ export default function CartCheckoutScreen() {
             booking_date: date,
             time_slot: slot,
             payment_method: paymentMethod === 'upi' ? 'upi' : 'cod',
+            ...(alum
+              ? {
+                  measure: item.measure ?? 1,
+                  measure_unit: item.measureUnit,
+                }
+              : {}),
           });
           lastBooking = res.booking;
           successCount += 1;
@@ -175,10 +184,18 @@ export default function CartCheckoutScreen() {
           {items.map((item) => (
             <View key={item.service.id} style={styles.cartLine}>
               <Text style={styles.cartName} numberOfLines={1}>
-                {item.quantity > 1 ? `${item.quantity}× ` : ''}{item.service.name}
+                {item.measureUnit
+                  ? `${item.measure} ${item.measureUnit} · ${item.service.name}`
+                  : item.quantity > 1
+                    ? `${item.quantity}× ${item.service.name}`
+                    : item.service.name}
               </Text>
               <Text style={styles.cartPrice}>
-                ₹{(Number(item.service.price) * item.quantity).toLocaleString('en-IN')}
+                ₹{(
+                  item.measureUnit
+                    ? Number(item.service.price) * (item.measure ?? 1) * item.quantity
+                    : Number(item.service.price) * item.quantity
+                ).toLocaleString('en-IN')}
               </Text>
             </View>
           ))}
