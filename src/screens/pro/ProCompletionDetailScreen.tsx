@@ -77,6 +77,13 @@ export default function ProCompletionDetailScreen() {
 
   if (!data) return <View style={styles.center}><Text>Loading...</Text></View>;
 
+  const technicianEarnings = Number(data.earnings ?? data.professional_earnings ?? 0);
+  const adminCommission = Number(data.commission ?? Math.max(0, data.amount - technicianEarnings));
+  const adminPercent = Number(data.platform_commission_percent ?? data.commission_percent ?? 0);
+  const technicianPercent = Number(
+    data.professional_share_percent ?? Math.max(0, 100 - adminPercent),
+  );
+
   return (
     <ScrollView contentContainerStyle={styles.scroll}>
       <View style={styles.card}>
@@ -84,8 +91,18 @@ export default function ProCompletionDetailScreen() {
         <Text style={styles.service}>{data.service}</Text>
         <Text style={styles.meta}>{data.customer} · {data.date} · {data.time}</Text>
         <Text style={styles.address}>{data.address}</Text>
-        <Text style={styles.amount}>₹{data.amount}</Text>
-        <Text style={styles.earn}>Your earnings: ₹{data.earnings ?? 0}</Text>
+        <Text style={styles.amount}>Job amount ₹{data.amount}</Text>
+
+        <View style={styles.splitBox}>
+          <View style={styles.splitRow}>
+            <Text style={styles.splitLabel}>Your share ({technicianPercent.toFixed(0)}%)</Text>
+            <Text style={styles.earn}>₹{technicianEarnings.toFixed(0)}</Text>
+          </View>
+          <View style={styles.splitRow}>
+            <Text style={styles.splitLabel}>Admin commission ({adminPercent.toFixed(0)}%)</Text>
+            <Text style={styles.commission}>₹{adminCommission.toFixed(0)}</Text>
+          </View>
+        </View>
       </View>
 
       {data.is_completed ? (
@@ -149,8 +166,18 @@ const styles = StyleSheet.create({
   service: { fontSize: 20, fontWeight: '800', color: BRAND.ink, marginTop: 4 },
   meta: { fontSize: 13, color: BRAND.muted, marginTop: 6 },
   address: { fontSize: 13, color: BRAND.ink, marginTop: 8, lineHeight: 18 },
-  amount: { fontSize: 28, fontWeight: '800', color: '#059669', marginTop: 12 },
-  earn: { fontSize: 13, color: BRAND.muted, marginTop: 4 },
+  amount: { fontSize: 18, fontWeight: '800', color: BRAND.ink, marginTop: 12 },
+  splitBox: {
+    marginTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    paddingTop: 12,
+    gap: 8,
+  },
+  splitRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  splitLabel: { fontSize: 13, color: BRAND.muted, fontWeight: '600' },
+  earn: { fontSize: 18, fontWeight: '800', color: '#059669' },
+  commission: { fontSize: 15, fontWeight: '700', color: '#B45309' },
   section: { fontSize: 15, fontWeight: '800', color: BRAND.ink, marginBottom: 10 },
   methodRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   methodBtn: { flex: 1, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#fff', alignItems: 'center' },

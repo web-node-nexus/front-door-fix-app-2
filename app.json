@@ -2,11 +2,11 @@
   "expo": {
     "name": "Front Door",
     "slug": "front-door",
-    "version": "2.0.0",
+    "version": "2.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "splash": {
-      "image": "./assets/logo.png",
+      "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#FFFFFF"
     },
@@ -16,8 +16,8 @@
       "bundleIdentifier": "in.frontdoorfix.app"
     },
     "android": {
-      "package": "in.frontdoor.app.release",
-      "versionCode": 1,
+      "package": "in.frontdoorfix.app",
+      "versionCode": 4,
       "usesCleartextTraffic": true,
       "permissions": [
         "ACCESS_COARSE_LOCATION",

@@ -14,22 +14,34 @@ import { FeedbackProvider } from './src/context/FeedbackContext';
 import { NotificationProvider } from './src/context/NotificationContext';
 import { ProfileProvider } from './src/context/ProfileContext';
 import RootNavigator from './src/navigation/RootNavigator';
+import LanguageSelectScreen from './src/screens/LanguageSelectScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import { BRAND } from './src/config';
 
 ExpoSplash.preventAutoHideAsync().catch(() => {});
 
 const ONBOARDING_KEY = '@frontdoor_onboarding_done';
+const LANGUAGE_PICKED_KEY = '@frontdoor_language_picked';
 
 function AppShell() {
   const { initializing } = useAuth();
   const [splashDone, setSplashDone] = useState(false);
+  const [languagePicked, setLanguagePicked] = useState<boolean | null>(null);
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
 
   useEffect(() => {
-    AsyncStorage.getItem(ONBOARDING_KEY)
-      .then((value) => setOnboardingDone(value === '1'))
-      .catch(() => setOnboardingDone(false));
+    Promise.all([
+      AsyncStorage.getItem(LANGUAGE_PICKED_KEY),
+      AsyncStorage.getItem(ONBOARDING_KEY),
+    ])
+      .then(([lang, onboard]) => {
+        setLanguagePicked(lang === '1');
+        setOnboardingDone(onboard === '1');
+      })
+      .catch(() => {
+        setLanguagePicked(false);
+        setOnboardingDone(false);
+      });
   }, []);
 
   useEffect(() => {
@@ -46,11 +58,23 @@ function AppShell() {
   }
 
   // Avoid blank white screen while auth/onboarding hydrate.
-  if (initializing || onboardingDone === null) {
+  if (initializing || languagePicked === null || onboardingDone === null) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' }}>
         <ActivityIndicator size="large" color={BRAND.primary} />
       </View>
+    );
+  }
+
+  // Fresh install: language first, then onboarding.
+  if (!languagePicked) {
+    return (
+      <LanguageSelectScreen
+        onDone={async () => {
+          await AsyncStorage.setItem(LANGUAGE_PICKED_KEY, '1');
+          setLanguagePicked(true);
+        }}
+      />
     );
   }
 

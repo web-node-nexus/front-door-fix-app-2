@@ -91,6 +91,9 @@ export default function SplashScreen({ onFinish }: Props) {
           </Animated.View>
         </View>
 
+        <Animated.Text style={[styles.brandName, { opacity: tagOpacity }]}>
+          Front Door
+        </Animated.Text>
         <Animated.Text style={[styles.tagline, { opacity: tagOpacity }]}>
           Premium home services at your doorstep
         </Animated.Text>
@@ -131,6 +134,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logo: { width: 240, height: 140 },
+  brandName: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: BRAND.ink,
+    letterSpacing: -0.5,
+    marginBottom: 6,
+  },
   tagline: {
     fontSize: 14,
     color: BRAND.muted,

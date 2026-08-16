@@ -70,9 +70,11 @@ export default function ServiceCard({ service, onPress, onBook, showFavorite, sh
           <Text style={styles.categoryTag}>{service.category.name}</Text>
         ) : null}
         <Text style={styles.title} numberOfLines={2}>{service.name}</Text>
-        <Text style={styles.desc} numberOfLines={2}>
-          Verified professionals · Best price guarantee
-        </Text>
+        {plainDescription ? (
+          <Text style={styles.desc} numberOfLines={2}>{plainDescription}</Text>
+        ) : (
+          <Text style={styles.desc} numberOfLines={2}>Verified professionals · Best price guarantee</Text>
+        )}
 
         <View style={styles.meta}>
           <View style={styles.duration}>

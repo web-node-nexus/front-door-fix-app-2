@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { PLATFORM_PAYMENT } from '../constants/payment';
 
 export type Address = {
   id: string;
@@ -108,10 +109,21 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
   const paymentMethods: PaymentMethod[] = useMemo(
     () => [
-      { id: '1', type: 'upi', label: 'UPI', detail: 'yashi@upi', active: true },
-      { id: '2', type: 'card', label: 'Credit Card', detail: '•••• 4242', active: true },
-      { id: '3', type: 'card', label: 'Debit Card', detail: '•••• 8910', active: false },
-      { id: '4', type: 'wallet', label: 'Front Door Wallet', detail: `₹${walletBalance}`, active: true },
+      {
+        id: '1',
+        type: 'upi',
+        label: 'Front Door Fix UPI',
+        detail: PLATFORM_PAYMENT.upiId,
+        active: true,
+      },
+      {
+        id: '2',
+        type: 'wallet',
+        label: 'Bank Transfer',
+        detail: `${PLATFORM_PAYMENT.bankName} · ${PLATFORM_PAYMENT.accountNumber}`,
+        active: true,
+      },
+      { id: '3', type: 'wallet', label: 'Front Door Wallet', detail: `₹${walletBalance}`, active: true },
     ],
     [walletBalance],
   );

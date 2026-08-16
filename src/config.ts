@@ -1,16 +1,17 @@
 import Constants from 'expo-constants';
 
 /**
- * Release APK hits ONLY this production API:
- *   https://frontdoor.in/api
+ * API mode switch.
+ *  - 'live'  → production: https://frontdoorfix.in/api
+ *  - 'local' → local Laravel (USB/WiFi)
+ * Live API ke liye hamesha 'live' rakho.
  */
-/** Expo Go / local: hit PC Laravel API. Release APK builds should use 'live'. */
-export const API_MODE: 'live' | 'local' = 'local';
+export const API_MODE: 'live' | 'local' = 'live';
 
-/** Origin only — app appends /api automatically -> https://frontdoor.in/api */
-export const LIVE_ORIGIN = 'https://frontdoor.in';
+/** Origin only — app appends /api automatically → https://frontdoorfix.in/api */
+export const LIVE_ORIGIN = 'https://frontdoorfix.in';
 
-export const PUBLIC_ORIGIN = 'https://frontdoor.in';
+export const PUBLIC_ORIGIN = 'https://frontdoorfix.in';
 
 // Dev-only (Expo Go / Wi‑Fi). USB reverse optional; same Wi‑Fi pe LAN IP use karo.
 export const DEV_IP = '192.168.1.9';
@@ -86,4 +87,4 @@ export const BRAND = {
 };
 
 /** Rebuild stamp for fresh APK */
-export const BUILD_STAMP = '2026-07-31 01:55:00';
+export const BUILD_STAMP = '2026-08-11 22:20:00';

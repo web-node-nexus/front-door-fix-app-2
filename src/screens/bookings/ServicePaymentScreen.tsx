@@ -17,6 +17,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, Booking, PaymentPayload } from '../../api/client';
 import { BRAND } from '../../config';
+import { PLATFORM_PAYMENT } from '../../constants/payment';
 import { useActiveBooking } from '../../context/ActiveBookingContext';
 import { useScreenPadding } from '../../hooks/useScreenPadding';
 import { isBookingCompleted } from '../../utils/bookingLifecycle';
@@ -207,10 +208,21 @@ export default function ServicePaymentScreen() {
                   </View>
                 </View>
                 <View style={styles.upiRow}>
-                  <Text style={styles.upiLabel}>Pay to: <Text style={styles.upiId}>{data?.upi_id}</Text></Text>
+                  <Text style={styles.payeeName}>{data?.payee_name || PLATFORM_PAYMENT.payeeName}</Text>
+                  <Text style={styles.upiLabel}>UPI: <Text selectable style={styles.upiId}>{data?.upi_id || PLATFORM_PAYMENT.upiId}</Text></Text>
                   <Text style={styles.qrAmount}>₹{Number(data?.amount).toLocaleString('en-IN')}</Text>
                   <Text style={styles.qrCode}>{data?.booking_code}</Text>
                   <Text style={styles.qrTimer}>QR expires in <Text style={styles.timerStrong}>{timer}</Text></Text>
+                </View>
+                <View style={styles.bankFallback}>
+                  <Text style={styles.bankTitle}>Or pay via bank transfer</Text>
+                  <Text style={styles.bankLine}>{data?.bank_name || PLATFORM_PAYMENT.bankName}</Text>
+                  <Text selectable style={styles.bankLine}>
+                    A/C: {data?.bank_account || PLATFORM_PAYMENT.accountNumber}
+                  </Text>
+                  <Text selectable style={styles.bankLine}>
+                    IFSC: {data?.bank_ifsc || PLATFORM_PAYMENT.ifsc}
+                  </Text>
                 </View>
               </View>
             )}
@@ -396,12 +408,16 @@ const styles = StyleSheet.create({
   gpayBadge: { marginTop: 10, backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: BRAND.border },
   gpayText: { fontSize: 11, fontWeight: '700', color: BRAND.muted },
   upiRow: { alignItems: 'center', marginTop: 14, gap: 4 },
+  payeeName: { fontSize: 15, fontWeight: '900', color: BRAND.ink },
   upiLabel: { fontSize: 13, color: BRAND.muted },
   upiId: { fontWeight: '800', color: BRAND.ink },
   qrAmount: { fontSize: 28, fontWeight: '800', color: BRAND.primary },
   qrCode: { fontSize: 12, color: BRAND.muted },
   qrTimer: { fontSize: 12, color: BRAND.muted, marginTop: 4 },
   timerStrong: { fontWeight: '800', color: '#EA580C' },
+  bankFallback: { marginTop: 16, borderRadius: 16, padding: 14, backgroundColor: '#FFF7FA', borderWidth: 1, borderColor: '#FFD9E7' },
+  bankTitle: { fontSize: 13, fontWeight: '900', color: BRAND.primaryDark, marginBottom: 8 },
+  bankLine: { fontSize: 13, color: BRAND.ink, fontWeight: '600', marginTop: 3 },
   cashHint: { fontSize: 14, color: BRAND.muted, lineHeight: 22 },
   callRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, alignSelf: 'flex-start' },
   callText: { color: BRAND.primary, fontWeight: '700' },

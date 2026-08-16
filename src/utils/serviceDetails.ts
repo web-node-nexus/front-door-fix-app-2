@@ -1,5 +1,6 @@
 import { Service } from '../api/client';
 import { categoryIcon } from './serviceImagery';
+import { stripHtml } from './stripHtml';
 
 const CATEGORY_INCLUDES: Record<string, string[]> = {
   cleaning: [
@@ -77,7 +78,10 @@ export function serviceIncludes(service: Service): string[] {
   const base = CATEGORY_INCLUDES[slug] || DEFAULT_INCLUDES;
 
   if (service.description) {
-    return [service.description, ...base.slice(0, 3)];
+    const plain = stripHtml(service.description);
+    if (plain) {
+      return [plain, ...base.slice(0, 3)];
+    }
   }
 
   return base;

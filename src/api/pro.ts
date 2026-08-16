@@ -118,6 +118,10 @@ export type ProCompletionPayload = {
   amount: number;
   commission?: number;
   earnings?: number;
+  professional_earnings?: number;
+  commission_percent?: number;
+  platform_commission_percent?: number;
+  professional_share_percent?: number;
   collection_method?: string | null;
   collection_status?: string | null;
   needs_collection?: boolean;
@@ -158,7 +162,17 @@ export const proApi = {
     proRequest<{
       stats: ProPollPayload['stats'];
       chart: { label: string; amount: number }[];
-      recent: { id: number; booking_code: string; service?: string; customer?: string; amount: number; date?: string }[];
+      recent: {
+        id: number;
+        booking_code: string;
+        service?: string;
+        customer?: string;
+        amount: number;
+        job_amount?: number;
+        commission_percent?: number;
+        professional_share_percent?: number;
+        date?: string;
+      }[];
     }>('/pro/earnings'),
   withdraw: (amount: number) =>
     proRequest<{ success: boolean; message: string; wallet_balance: number }>('/pro/wallet/withdraw', {
@@ -184,8 +198,26 @@ export const proApi = {
     }),
   completionList: () =>
     proRequest<{
-      pending: { id: number; booking_code: string; service?: string; customer?: string; amount: number }[];
-      completed: { id: number; booking_code: string; service?: string; customer?: string; amount: number }[];
+      pending: {
+        id: number;
+        booking_code: string;
+        service?: string;
+        customer?: string;
+        amount: number;
+        earnings?: number;
+        commission_percent?: number;
+        professional_share_percent?: number;
+      }[];
+      completed: {
+        id: number;
+        booking_code: string;
+        service?: string;
+        customer?: string;
+        amount: number;
+        earnings?: number;
+        commission_percent?: number;
+        professional_share_percent?: number;
+      }[];
     }>('/pro/completion'),
   completionShow: (id: number) => proRequest<ProCompletionPayload>(`/pro/completion/${id}`),
   completionMethod: (id: number, method: 'cod' | 'online') =>

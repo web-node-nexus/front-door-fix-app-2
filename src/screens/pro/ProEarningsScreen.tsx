@@ -101,11 +101,15 @@ export default function ProEarningsScreen() {
         </Pressable>
 
         <Text style={styles.section}>Recent payouts</Text>
+        <Text style={styles.hint}>Amounts below are your technician share after admin commission.</Text>
         {data?.recent.map((r) => (
           <View key={r.id} style={styles.recentRow}>
-            <View>
+            <View style={{ flex: 1, paddingRight: 12 }}>
               <Text style={styles.recentService}>{r.service}</Text>
-              <Text style={styles.recentMeta}>{r.customer} · {r.date}</Text>
+              <Text style={styles.recentMeta}>
+                {r.customer} · {r.date}
+                {r.job_amount != null ? ` · Job ₹${Number(r.job_amount).toFixed(0)}` : ''}
+              </Text>
             </View>
             <Text style={styles.recentAmt}>+₹{r.amount.toFixed(0)}</Text>
           </View>
@@ -126,6 +130,7 @@ const styles = StyleSheet.create({
   miniLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 11 },
   miniVal: { color: '#fff', fontSize: 18, fontWeight: '800', marginTop: 4 },
   section: { fontSize: 16, fontWeight: '800', color: BRAND.ink, marginBottom: 12, marginTop: 8 },
+  hint: { fontSize: 12, color: BRAND.muted, marginTop: -6, marginBottom: 12, lineHeight: 17 },
   chart: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', height: 100, marginBottom: 20, paddingHorizontal: 4 },
   barWrap: { alignItems: 'center', flex: 1 },
   bar: { width: 20, backgroundColor: '#7C3AED', borderRadius: 6 },

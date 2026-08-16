@@ -68,7 +68,10 @@ export default function ProRequestCard({ request, onAccepted, onRejected }: Prop
     <View style={styles.card}>
       <View style={styles.top}>
         <Text style={styles.service}>{request.service}</Text>
-        <Text style={styles.earnings}>₹{Number(request.earnings ?? 0).toFixed(0)}</Text>
+        <View style={styles.earnWrap}>
+          <Text style={styles.earnLabel}>Your share</Text>
+          <Text style={styles.earnings}>₹{Number(request.earnings ?? 0).toFixed(0)}</Text>
+        </View>
       </View>
       <Text style={styles.meta}>
         {request.customer} · {request.date} · {request.time_slot}
@@ -109,7 +112,9 @@ const styles = StyleSheet.create({
   },
   top: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
   service: { flex: 1, fontSize: 16, fontWeight: '800', color: BRAND.ink },
-  earnings: { fontSize: 16, fontWeight: '800', color: '#059669' },
+  earnWrap: { alignItems: 'flex-end' },
+  earnLabel: { fontSize: 10, fontWeight: '700', color: BRAND.muted, textTransform: 'uppercase' },
+  earnings: { fontSize: 16, fontWeight: '800', color: '#059669', marginTop: 2 },
   meta: { fontSize: 12, color: BRAND.muted, marginTop: 6, fontWeight: '600' },
   address: { fontSize: 13, color: BRAND.ink, marginTop: 6, lineHeight: 18 },
   distance: { fontSize: 12, color: BRAND.primary, marginTop: 6, fontWeight: '700' },

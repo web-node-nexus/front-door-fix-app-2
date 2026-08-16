@@ -6,6 +6,7 @@ import { BRAND } from '../config';
 import { useCart } from '../context/CartContext';
 import { durationLabel } from '../utils/serviceImagery';
 import { isAluminiumGlassService } from '../utils/measureUnits';
+import { stripHtml } from '../utils/stripHtml';
 
 type Props = {
   service: Service;
@@ -22,9 +23,13 @@ export default function ServiceListItem({ service, onPress }: Props) {
     <Pressable style={styles.row} onPress={onPress}>
       <View style={styles.info}>
         <Text style={styles.name} numberOfLines={2}>{service.name}</Text>
-        <Text style={styles.desc} numberOfLines={1}>
-          {durationLabel(service.duration_hours)} · Verified professionals
-        </Text>
+        {service.description ? (
+          <Text style={styles.desc} numberOfLines={2}>{stripHtml(service.description)}</Text>
+        ) : (
+          <Text style={styles.desc} numberOfLines={1}>
+            {durationLabel(service.duration_hours)} · Verified professionals
+          </Text>
+        )}
         <View style={styles.priceRow}>
           <Text style={styles.price}>₹{price.toLocaleString('en-IN')}</Text>
           {service.duration_hours ? (

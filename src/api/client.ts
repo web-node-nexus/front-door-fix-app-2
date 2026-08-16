@@ -628,6 +628,10 @@ export type PaymentPayload = {
   is_completed: boolean;
   upi_id?: string;
   upi_url?: string;
+  payee_name?: string;
+  bank_name?: string;
+  bank_account?: string;
+  bank_ifsc?: string;
   qr_image_url?: string | null;
   qr_fallback_url?: string;
   qr_expires_at?: number | null;

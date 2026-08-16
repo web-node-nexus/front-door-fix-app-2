@@ -36,7 +36,14 @@ export default function ProCompletionListScreen() {
               onPress={() => navigation.navigate('ProCompletionDetail', { bookingId: job.id })}
             >
               <Text style={styles.service}>{job.service}</Text>
-              <Text style={styles.meta}>{job.customer} · ₹{job.amount}</Text>
+              <Text style={styles.meta}>{job.customer}</Text>
+              <Text style={styles.amount}>Job ₹{Number(job.amount).toFixed(0)}</Text>
+              <Text style={styles.earn}>
+                Your share ₹{Number(job.earnings ?? job.amount).toFixed(0)}
+                {job.professional_share_percent != null
+                  ? ` (${Number(job.professional_share_percent).toFixed(0)}%)`
+                  : ''}
+              </Text>
             </Pressable>
           ))
         )}
@@ -57,4 +64,6 @@ const styles = StyleSheet.create({
   card: { backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 10, borderWidth: 1, borderColor: '#E5E7EB' },
   service: { fontSize: 16, fontWeight: '800', color: BRAND.ink },
   meta: { fontSize: 13, color: BRAND.muted, marginTop: 6 },
+  amount: { fontSize: 13, color: BRAND.ink, marginTop: 8, fontWeight: '600' },
+  earn: { fontSize: 14, color: '#059669', marginTop: 4, fontWeight: '800' },
 });
