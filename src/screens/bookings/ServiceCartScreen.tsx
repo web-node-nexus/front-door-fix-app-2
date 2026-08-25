@@ -12,6 +12,7 @@ import {
   isAluminiumGlassService,
   lineAmount,
   measureLabel,
+  unitPrice,
 } from '../../utils/measureUnits';
 
 export default function ServiceCartScreen() {
@@ -50,7 +51,7 @@ export default function ServiceCartScreen() {
             {items.map((item) => {
               const alum = isAluminiumGlassService(item.service);
               const line = alum
-                ? lineAmount(Number(item.service.price), item.measure ?? 1, item.quantity)
+                ? lineAmount(unitPrice(item.service, item.measureUnit), item.measure ?? 1, item.quantity)
                 : Number(item.service.price) * item.quantity;
 
               return (
@@ -62,7 +63,7 @@ export default function ServiceCartScreen() {
                     ) : null}
                     <Text style={styles.itemMeta}>
                       {alum && item.measureUnit
-                        ? `${item.measure} ${measureLabel(item.measureUnit)} · ₹${Number(item.service.price).toLocaleString('en-IN')}/${measureLabel(item.measureUnit).toLowerCase()}`
+                        ? `${item.measure} ${measureLabel(item.measureUnit)} · ₹${unitPrice(item.service, item.measureUnit).toLocaleString('en-IN')}/${measureLabel(item.measureUnit).toLowerCase()}`
                         : `${durationLabel(item.service.duration_hours)} · ₹${Number(item.service.price).toLocaleString('en-IN')} each`}
                     </Text>
                   </View>

@@ -31,17 +31,21 @@ export function getDevHost(): string {
   return DEV_IP;
 }
 
-const API_PORT = 8001;
+/** USB: adb reverse tcp:8000; Wi‑Fi: artisan --host=0.0.0.0 --port=8000 */
+const API_PORT = 8000;
 
 export function getApiBaseUrl(host = getDevHost()) {
   if (API_MODE === 'live') return `${LIVE_ORIGIN}/api`;
-  if (/\.exp\.direct$/i.test(host) || host === 'localhost') host = DEV_IP;
+  // USB / Expo localhost — keep loopback (adb reverse). Tunnel host → LAN IP.
+  if (/\.exp\.direct$/i.test(host)) host = DEV_IP;
+  if (host === 'localhost') host = '127.0.0.1';
   return `http://${host}:${API_PORT}/api`;
 }
 
 export function getAssetBaseUrl(host = getDevHost()) {
   if (API_MODE === 'live') return LIVE_ORIGIN;
-  if (/\.exp\.direct$/i.test(host) || host === 'localhost') host = DEV_IP;
+  if (/\.exp\.direct$/i.test(host)) host = DEV_IP;
+  if (host === 'localhost') host = '127.0.0.1';
   return `http://${host}:${API_PORT}`;
 }
 
@@ -54,15 +58,20 @@ export function getApiBaseCandidates(): string[] {
     return [`${LIVE_ORIGIN}/api`];
   }
 
-  // Tunnel host (*.exp.direct) pe Laravel nahi chalta — skip, LAN / USB reverse use karo.
+  // USB reverse pe pehle 127.0.0.1; phir LAN IP (same Wi‑Fi).
   const metroHost = getDevHost();
-  const hosts: string[] = [];
+  const hosts: string[] = ['127.0.0.1'];
   const forcedHost = (process.env.EXPO_PUBLIC_API_HOST || '').trim();
   if (forcedHost) hosts.push(forcedHost);
-  if (metroHost && !/\.exp\.direct$/i.test(metroHost) && metroHost !== 'localhost') {
+  if (
+    metroHost &&
+    !/\.exp\.direct$/i.test(metroHost) &&
+    metroHost !== 'localhost' &&
+    metroHost !== '127.0.0.1'
+  ) {
     hosts.push(metroHost);
   }
-  hosts.push(DEV_IP, '127.0.0.1');
+  hosts.push(DEV_IP);
   return [...new Set(hosts.filter(Boolean))].map((h) => getApiBaseUrl(h));
 }
 

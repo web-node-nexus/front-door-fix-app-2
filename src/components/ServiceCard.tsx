@@ -8,7 +8,7 @@ import { useCart } from '../context/CartContext';
 import { useProfile } from '../context/ProfileContext';
 import { categoryIcon, durationLabel, serviceImageUrl } from '../utils/serviceImagery';
 import { stripHtml } from '../utils/stripHtml';
-import { isAluminiumGlassService, lineAmount, measureLabel } from '../utils/measureUnits';
+import { isAluminiumGlassService, lineAmount, measureLabel, unitPrice } from '../utils/measureUnits';
 
 type Props = {
   service: Service;
@@ -89,7 +89,7 @@ export default function ServiceCard({ service, onPress, onBook, showFavorite, sh
         {alumGlass && cartItem?.measureUnit ? (
           <Text style={styles.measureHint}>
             {cartItem.measure} {measureLabel(cartItem.measureUnit)} · ₹
-            {lineAmount(Number(service.price), cartItem.measure ?? 1, cartItem.quantity).toLocaleString('en-IN')}
+            {lineAmount(unitPrice(service, cartItem.measureUnit), cartItem.measure ?? 1, cartItem.quantity).toLocaleString('en-IN')}
           </Text>
         ) : null}
 

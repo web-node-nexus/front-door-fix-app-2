@@ -77,6 +77,10 @@ export type Service = {
   slug: string;
   description?: string;
   price: string | number;
+  price_sqft?: string | number | null;
+  price_kg?: string | number | null;
+  price_inch?: string | number | null;
+  price_feet?: string | number | null;
   pricing_unit?: string | null;
   duration_hours?: number;
   image?: string;
@@ -197,7 +201,7 @@ function networkErrorMessage(tried: string[]): string {
   );
 }
 
-const REQUEST_TIMEOUT_MS = 8000;
+const REQUEST_TIMEOUT_MS = 45000;
 
 async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = REQUEST_TIMEOUT_MS): Promise<Response> {
   const controller = new AbortController();
@@ -594,7 +598,7 @@ export const api = {
     time_slot: string;
     payment_method?: string;
     measure?: number;
-    measure_unit?: 'inch' | 'feet' | 'kg';
+    measure_unit?: 'sqft' | 'kg' | 'inch' | 'feet';
   }) =>
     request<{ booking: Booking; tracking: TrackingPayload }>(
       '/bookings',

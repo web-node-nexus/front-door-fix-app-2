@@ -229,7 +229,13 @@ export default function ServicesScreen() {
         visible={!!selectedService}
         service={selectedService}
         onClose={() => setSelectedService(null)}
-        onBook={(service) => nav.navigate('BookService', { service })}
+        onBook={(service, options) =>
+          nav.navigate('BookService', {
+            service,
+            measureUnit: options?.measureUnit,
+            measure: options?.measure,
+          })
+        }
       />
 
       <ServiceCartBar onPress={() => nav.navigate('ServiceCart')} />

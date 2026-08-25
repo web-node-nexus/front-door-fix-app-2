@@ -18,6 +18,7 @@ import KeyboardTextInput from '../../components/KeyboardTextInput';
 import { BRAND } from '../../config';
 import { useActiveBooking } from '../../context/ActiveBookingContext';
 import { useCart } from '../../context/CartContext';
+import { unitPrice } from '../../utils/measureUnits';
 import { pincodeForCity, SERVICE_CITIES, useLocation } from '../../context/LocationContext';
 import { nextDates, TIME_SLOTS } from '../../data/bookingSlots';
 import { useScreenPadding } from '../../hooks/useScreenPadding';
@@ -193,7 +194,7 @@ export default function CartCheckoutScreen() {
               <Text style={styles.cartPrice}>
                 ₹{(
                   item.measureUnit
-                    ? Number(item.service.price) * (item.measure ?? 1) * item.quantity
+                    ? unitPrice(item.service, item.measureUnit) * (item.measure ?? 1) * item.quantity
                     : Number(item.service.price) * item.quantity
                 ).toLocaleString('en-IN')}
               </Text>
@@ -334,7 +335,7 @@ export default function CartCheckoutScreen() {
         </View>
 
         <View style={styles.summary}>
-          <Text style={styles.summaryLabel}>Total amount</Text>
+          <Text style={styles.summaryLabel}>Amount to pay</Text>
           <Text style={styles.summaryAmount}>₹{totalAmount.toLocaleString('en-IN')}</Text>
           <Text style={styles.summaryNote}>
             All {itemCount} services will be booked for the same date & time slot

@@ -1,13 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Image,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { api, Booking, Service } from '../../api/client';
@@ -16,11 +17,21 @@ import KeyboardAwareScroll from '../../components/KeyboardAwareScroll';
 import KeyboardTextInput from '../../components/KeyboardTextInput';
 import { BRAND } from '../../config';
 import { useActiveBooking } from '../../context/ActiveBookingContext';
+import { useCart } from '../../context/CartContext';
 import { useFeedback } from '../../context/FeedbackContext';
 import { pincodeForCity, SERVICE_CITIES, useLocation } from '../../context/LocationContext';
 import { nextDates, TIME_SLOTS } from '../../data/bookingSlots';
 import { useScreenPadding } from '../../hooks/useScreenPadding';
 import { durationLabel, serviceImageUrl } from '../../utils/serviceImagery';
+import {
+  availableMeasureUnits,
+  isAluminiumGlassService,
+  lineAmount,
+  MEASURE_UNITS,
+  measureLabel,
+  MeasureUnit,
+  unitPrice,
+} from '../../utils/measureUnits';
 
 export default function BookServiceScreen() {
   const nav = useNavigation<any>();
@@ -29,9 +40,48 @@ export default function BookServiceScreen() {
   const { location, updateLocation } = useLocation();
   const { showError, showWarning } = useFeedback();
   const { refresh: refreshActiveBooking } = useActiveBooking();
+  const { getItem } = useCart();
   const service: Service = route.params?.service;
+  const routeMeasureUnit = route.params?.measureUnit as MeasureUnit | undefined;
+  const routeMeasure = route.params?.measure as number | undefined;
   const dates = nextDates();
   const pickingLocation = useRef(false);
+
+  const alumGlass = isAluminiumGlassService(service);
+  const unitOptions = useMemo(
+    () => (service ? availableMeasureUnits(service) : []),
+    [service],
+  );
+  const defaultUnit = unitOptions[0] ?? 'sqft';
+
+  const [measureUnit, setMeasureUnit] = useState<MeasureUnit>(
+    routeMeasureUnit && unitOptions.includes(routeMeasureUnit) ? routeMeasureUnit : defaultUnit,
+  );
+  const [measure, setMeasure] = useState(
+    String(routeMeasure && routeMeasure > 0 ? routeMeasure : 1),
+  );
+
+  const measureValue = Math.max(0.1, parseFloat(measure) || 0);
+  const rate = service ? unitPrice(service, measureUnit) : 0;
+  const amountToPay = useMemo(() => {
+    if (!service) return 0;
+    if (!alumGlass) return Number(service.price);
+    return lineAmount(rate, measureValue, 1);
+  }, [alumGlass, measureValue, rate, service]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!service) return;
+      const cartItem = getItem(service.id);
+      if (cartItem?.measureUnit) {
+        setMeasureUnit(cartItem.measureUnit);
+        setMeasure(String(cartItem.measure ?? 1));
+      } else if (routeMeasureUnit && unitOptions.includes(routeMeasureUnit)) {
+        setMeasureUnit(routeMeasureUnit);
+        setMeasure(String(routeMeasure && routeMeasure > 0 ? routeMeasure : 1));
+      }
+    }, [getItem, routeMeasure, routeMeasureUnit, service, unitOptions]),
+  );
 
   const [date, setDate] = useState(dates[1]?.value || dates[0].value);
   const [slot, setSlot] = useState(TIME_SLOTS[1]);
@@ -122,6 +172,11 @@ export default function BookServiceScreen() {
     const method = paymentMethod === 'upi' ? 'upi' : 'cod';
     await updateLocation({ city: city.trim(), pincode: pincode.trim(), addressLine: addressLine.trim() });
 
+    if (alumGlass && (!measureValue || measureValue <= 0)) {
+      showWarning('Measure required', 'Please enter square feet or kg for this service.');
+      return;
+    }
+
     setSaving(true);
     try {
       const res = await api.storeBooking({
@@ -132,6 +187,12 @@ export default function BookServiceScreen() {
         booking_date: date,
         time_slot: slot,
         payment_method: method,
+        ...(alumGlass
+          ? {
+              measure: measureValue,
+              measure_unit: measureUnit,
+            }
+          : {}),
       });
       setConfirmedBooking(res.booking);
       refreshActiveBooking();
@@ -169,10 +230,58 @@ export default function BookServiceScreen() {
           <Text style={styles.serviceCat}>{service.category?.name}</Text>
           <View style={styles.serviceMeta}>
             <Text style={styles.duration}>{durationLabel(service.duration_hours)}</Text>
-            <Text style={styles.price}>₹{Number(service.price).toLocaleString('en-IN')}</Text>
+            <Text style={styles.price}>
+              {alumGlass
+                ? `₹${rate.toLocaleString('en-IN')} / ${measureLabel(measureUnit).toLowerCase()}`
+                : `₹${Number(service.price).toLocaleString('en-IN')}`}
+            </Text>
           </View>
         </View>
       </View>
+
+      {alumGlass ? (
+        <View style={styles.measureCard}>
+          <Text style={styles.measureTitle}>Select unit (Aluminium & Glass)</Text>
+          <View style={styles.unitRow}>
+            {MEASURE_UNITS.filter((u) => unitOptions.includes(u.value)).map((u) => {
+              const active = measureUnit === u.value;
+              return (
+                <Pressable
+                  key={u.value}
+                  style={[styles.unitChip, active && styles.unitChipActive]}
+                  onPress={() => setMeasureUnit(u.value)}
+                >
+                  <Text style={[styles.unitChipText, active && styles.unitChipTextActive]}>
+                    {u.label}
+                  </Text>
+                  <Text style={[styles.unitRate, active && styles.unitChipTextActive]}>
+                    ₹{unitPrice(service, u.value).toLocaleString('en-IN')}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={styles.measureFieldLabel}>
+            Enter {measureLabel(measureUnit).toLowerCase()}
+          </Text>
+          <View style={styles.measureInputRow}>
+            <TextInput
+              style={styles.measureInput}
+              value={measure}
+              onChangeText={setMeasure}
+              keyboardType="decimal-pad"
+              placeholder="e.g. 10"
+              placeholderTextColor={BRAND.light}
+            />
+            <Text style={styles.measureUnitTag}>{measureLabel(measureUnit)}</Text>
+          </View>
+          <Text style={styles.estimateLine}>
+            {measureValue} {measureLabel(measureUnit).toLowerCase()} × ₹
+            {rate.toLocaleString('en-IN')} ={' '}
+            <Text style={styles.estimateValue}>₹{amountToPay.toLocaleString('en-IN')}</Text>
+          </Text>
+        </View>
+      ) : null}
 
       <Text style={styles.sectionTitle}>Service Address</Text>
 
@@ -308,7 +417,13 @@ export default function BookServiceScreen() {
 
       <View style={styles.summary}>
         <Text style={styles.summaryLabel}>Amount to pay</Text>
-        <Text style={styles.summaryAmount}>₹{Number(service.price).toLocaleString('en-IN')}</Text>
+        <Text style={styles.summaryAmount}>₹{amountToPay.toLocaleString('en-IN')}</Text>
+        {alumGlass ? (
+          <Text style={styles.summaryDetail}>
+            {measureValue} {measureLabel(measureUnit).toLowerCase()} × ₹
+            {rate.toLocaleString('en-IN')}/{measureLabel(measureUnit).toLowerCase()}
+          </Text>
+        ) : null}
         <Text style={styles.summaryNote}>
           {paymentMethod === 'cod' ? 'Pay after service completion (Cash on Delivery)' : 'Online payment · marked as Paid Online in My Bookings'}
         </Text>
@@ -353,6 +468,46 @@ const styles = StyleSheet.create({
   serviceMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 },
   duration: { fontSize: 12, fontWeight: '600', color: BRAND.primary },
   price: { fontSize: 18, fontWeight: '800', color: BRAND.primary },
+  measureCard: {
+    backgroundColor: BRAND.canvas,
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: BRAND.border,
+  },
+  measureTitle: { fontSize: 14, fontWeight: '800', color: BRAND.ink, marginBottom: 10 },
+  unitRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  unitChip: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: BRAND.border,
+    backgroundColor: BRAND.surface,
+    alignItems: 'center',
+  },
+  unitChipActive: { borderColor: BRAND.primary, backgroundColor: BRAND.lavender },
+  unitChipText: { fontSize: 13, fontWeight: '700', color: BRAND.muted },
+  unitChipTextActive: { color: BRAND.primary },
+  unitRate: { fontSize: 11, fontWeight: '700', color: BRAND.muted, marginTop: 2 },
+  measureFieldLabel: { fontSize: 12, fontWeight: '700', color: BRAND.muted, marginBottom: 6 },
+  measureInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  measureInput: {
+    flex: 1,
+    height: 46,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: BRAND.border,
+    backgroundColor: BRAND.surface,
+    paddingHorizontal: 14,
+    fontSize: 16,
+    fontWeight: '700',
+    color: BRAND.ink,
+  },
+  measureUnitTag: { fontSize: 13, fontWeight: '800', color: BRAND.ink, minWidth: 40 },
+  estimateLine: { marginTop: 10, fontSize: 13, color: BRAND.muted, fontWeight: '600' },
+  estimateValue: { color: BRAND.primary, fontWeight: '800' },
   sectionTitle: { fontSize: 15, fontWeight: '800', color: BRAND.ink, marginBottom: 10, marginTop: 4 },
   locationCard: {
     flexDirection: 'row',
@@ -474,6 +629,7 @@ const styles = StyleSheet.create({
   },
   summaryLabel: { fontSize: 12, color: BRAND.muted, fontWeight: '600' },
   summaryAmount: { fontSize: 24, fontWeight: '800', color: BRAND.ink, marginTop: 4 },
+  summaryDetail: { fontSize: 12, color: BRAND.primary, fontWeight: '700', marginTop: 4 },
   summaryNote: { fontSize: 12, color: BRAND.muted, marginTop: 6 },
   btn: {
     marginTop: 16,

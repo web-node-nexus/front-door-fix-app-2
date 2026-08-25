@@ -26,34 +26,43 @@ import {
 import { categoryIcon, durationLabel, serviceImageUrl } from '../utils/serviceImagery';
 import { stripHtml } from '../utils/stripHtml';
 import {
+  availableMeasureUnits,
   isAluminiumGlassService,
   lineAmount,
   MEASURE_UNITS,
   MeasureUnit,
   measureLabel,
+  unitPrice,
 } from '../utils/measureUnits';
 
 type Props = {
   visible: boolean;
   service: Service | null;
   onClose: () => void;
-  onBook: (service: Service) => void;
+  onBook: (
+    service: Service,
+    options?: { measureUnit?: MeasureUnit; measure?: number },
+  ) => void;
 };
 
 export default function ServiceDetailSheet({ visible, service, onClose, onBook }: Props) {
   const insets = useSafeAreaInsets();
   const { getQuantity, addItem, updateQuantity, getItem } = useCart();
   const { isFavorite, toggleFavorite } = useProfile();
-  const [measureUnit, setMeasureUnit] = useState<MeasureUnit>('feet');
+  const [measureUnit, setMeasureUnit] = useState<MeasureUnit>('sqft');
   const [measure, setMeasure] = useState('1');
 
   const alumGlass = isAluminiumGlassService(service);
+  const unitOptions = useMemo(
+    () => (service ? availableMeasureUnits(service) : []),
+    [service],
+  );
   const measureValue = Math.max(0.1, parseFloat(measure) || 0);
   const estimated = useMemo(() => {
     if (!service) return 0;
     if (!alumGlass) return Number(service.price);
-    return lineAmount(Number(service.price), measureValue, 1);
-  }, [alumGlass, service, measureValue]);
+    return lineAmount(unitPrice(service, measureUnit), measureValue, 1);
+  }, [alumGlass, service, measureValue, measureUnit]);
 
   useEffect(() => {
     if (!service || !visible) return;
@@ -62,10 +71,11 @@ export default function ServiceDetailSheet({ visible, service, onClose, onBook }
       setMeasureUnit(existing.measureUnit);
       setMeasure(String(existing.measure ?? 1));
     } else {
-      setMeasureUnit('feet');
+      const opts = availableMeasureUnits(service);
+      setMeasureUnit(opts[0] ?? 'sqft');
       setMeasure('1');
     }
-  }, [service?.id, visible]);
+  }, [service?.id, visible, getItem]);
 
   if (!service) return null;
 
@@ -137,7 +147,7 @@ export default function ServiceDetailSheet({ visible, service, onClose, onBook }
                   <Text style={styles.priceLabel}>
                     {alumGlass ? `Rate / ${measureLabel(measureUnit).toLowerCase()}` : 'Service charges'}
                   </Text>
-                  <Text style={styles.price}>₹{Number(service.price).toLocaleString('en-IN')}</Text>
+                  <Text style={styles.price}>₹{unitPrice(service, measureUnit).toLocaleString('en-IN')}</Text>
                 </View>
                 <View style={styles.priceTag}>
                   <Text style={styles.priceTagText}>Best price</Text>
@@ -148,7 +158,7 @@ export default function ServiceDetailSheet({ visible, service, onClose, onBook }
                 <View style={styles.measureCard}>
                   <Text style={styles.sectionTitleMeasure}>Select unit (Aluminium & Glass)</Text>
                   <View style={styles.unitRow}>
-                    {MEASURE_UNITS.map((u) => {
+                    {MEASURE_UNITS.filter((u) => unitOptions.includes(u.value)).map((u) => {
                       const active = measureUnit === u.value;
                       return (
                         <Pressable
@@ -244,10 +254,17 @@ export default function ServiceDetailSheet({ visible, service, onClose, onBook }
               style={styles.bookBtn}
               onPress={() => {
                 if (alumGlass) {
+                  if (!measureValue || measureValue <= 0) {
+                    Alert.alert('Enter measure', 'Please enter a valid size/weight amount.');
+                    return;
+                  }
                   addWithMeasure();
                 }
                 onClose();
-                onBook(service);
+                onBook(
+                  service,
+                  alumGlass ? { measureUnit, measure: measureValue } : undefined,
+                );
               }}
             >
               <LinearGradient colors={[BRAND.primary, BRAND.purple]} style={styles.bookGradient}>

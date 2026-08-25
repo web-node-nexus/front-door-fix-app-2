@@ -5,6 +5,7 @@ import {
   isAluminiumGlassService,
   lineAmount,
   MeasureUnit,
+  unitPrice,
 } from '../utils/measureUnits';
 
 export type CartItem = {
@@ -40,7 +41,7 @@ const CartContext = createContext<CartContextValue | null>(null);
 
 function itemLineTotal(item: CartItem): number {
   if (isAluminiumGlassService(item.service) && item.measureUnit) {
-    return lineAmount(Number(item.service.price), item.measure ?? 1, item.quantity);
+    return lineAmount(unitPrice(item.service, item.measureUnit), item.measure ?? 1, item.quantity);
   }
   return Number(item.service.price) * item.quantity;
 }
