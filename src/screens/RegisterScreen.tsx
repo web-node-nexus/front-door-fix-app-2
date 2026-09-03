@@ -58,7 +58,15 @@ export default function RegisterScreen() {
         password_confirmation: confirmPassword.trim(),
       });
     } catch (e) {
-      Alert.alert('Registration failed', e instanceof Error ? e.message : 'Please try again');
+      const message = e instanceof Error ? e.message : 'Please try again';
+      if (/already registered/i.test(message)) {
+        Alert.alert('Already registered', message, [
+          { text: 'Login', onPress: () => navigation.goBack() },
+          { text: 'OK' },
+        ]);
+        return;
+      }
+      Alert.alert('Registration failed', message);
     }
   }
 

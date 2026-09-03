@@ -9,6 +9,7 @@ import { useScreenPadding } from '../hooks/useScreenPadding';
 import { getPaymentDisplay } from '../utils/bookingPayment';
 import { downloadBookingInvoice } from '../utils/invoiceDownload';
 import { serviceImageUrl } from '../utils/serviceImagery';
+import { displayAssetUrl } from '../utils/avatarUrl';
 
 function bookingTab(b: Booking): 'Upcoming' | 'Active' | 'Completed' | 'Cancelled' {
   if (b.tab) return b.tab;
@@ -78,6 +79,20 @@ export default function BookingDetailScreen() {
           </View>
         </View>
       ))}
+
+      {(booking?.issue_photo_url || booking?.issue_note) ? (
+        <View style={styles.issueCard}>
+          <Text style={styles.rowLabel}>Issue reported</Text>
+          {booking?.issue_note ? <Text style={styles.rowValue}>{booking.issue_note}</Text> : null}
+          {booking?.issue_photo_url ? (
+            <Image
+              source={{ uri: displayAssetUrl(booking.issue_photo_url) || booking.issue_photo_url }}
+              style={styles.issuePhoto}
+              resizeMode="cover"
+            />
+          ) : null}
+        </View>
+      ) : null}
 
       <View style={[styles.paymentCard, { backgroundColor: paymentStyles.bg }]}>
         <View style={styles.paymentIconWrap}>
@@ -156,6 +171,15 @@ const styles = StyleSheet.create({
   rowIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: BRAND.lavender, alignItems: 'center', justifyContent: 'center' },
   rowLabel: { fontSize: 11, color: BRAND.muted, fontWeight: '600' },
   rowValue: { fontSize: 14, fontWeight: '700', marginTop: 2 },
+  issueCard: {
+    backgroundColor: BRAND.canvas,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: BRAND.border,
+  },
+  issuePhoto: { width: '100%', height: 180, borderRadius: 12, marginTop: 10 },
   paymentCard: {
     flexDirection: 'row',
     alignItems: 'center',

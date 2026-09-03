@@ -51,8 +51,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Front Door to access your photos to set a profile picture.",
-          "cameraPermission": "Allow Front Door to use your camera to take a profile picture."
+          "photosPermission": "Allow Front Door to access your photos to upload a picture of the damaged item.",
+          "cameraPermission": "Allow Front Door to use your camera to photograph the damaged item."
         }
       ],
       [

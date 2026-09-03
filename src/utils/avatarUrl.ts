@@ -17,6 +17,16 @@ function rewriteLocalHostToLive(url: string): string {
  * Resolve a displayable avatar URL for profile images.
  * Prefers absolute avatar_url from API; falls back to storage path.
  */
+export function displayAssetUrl(url?: string | null): string | null {
+  if (!url?.trim()) return null;
+  const value = url.trim();
+  if (value.startsWith('http://') || value.startsWith('https://')) {
+    return rewriteLocalHostToLive(value);
+  }
+  const clean = value.replace(/^\/+/, '');
+  return `${getAssetBaseUrl()}/${clean}`;
+}
+
 export function userAvatarUrl(avatar?: string | null, avatarUrl?: string | null): string | null {
   const absolute = avatarUrl?.trim() || (avatar?.startsWith('http') ? avatar : null);
   if (absolute) {

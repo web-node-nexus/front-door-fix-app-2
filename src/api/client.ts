@@ -69,6 +69,8 @@ export type ProRequest = {
   distance?: string;
   earnings?: number;
   expires_at?: number;
+  issue_note?: string | null;
+  issue_photo_url?: string | null;
 };
 
 export type Service = {
@@ -81,11 +83,16 @@ export type Service = {
   price_kg?: string | number | null;
   price_inch?: string | number | null;
   price_feet?: string | number | null;
+  quantity?: string | number | null;
+  quantity_unit?: string | null;
+  quantity_sqft?: string | number | null;
+  quantity_kg?: string | number | null;
   pricing_unit?: string | null;
   duration_hours?: number;
   image?: string;
+  image_url?: string | null;
   bookings_count?: number;
-  category?: { id: number; name: string; slug: string };
+  category?: { id: number; name: string; slug: string; image?: string | null; image_url?: string | null };
 };
 
 export type Category = {
@@ -95,6 +102,7 @@ export type Category = {
   icon?: string;
   description?: string;
   image?: string;
+  image_url?: string | null;
   services?: Service[];
 };
 
@@ -133,6 +141,8 @@ export type Booking = {
     percent: number;
   };
   invoice_available?: boolean;
+  issue_note?: string | null;
+  issue_photo_url?: string | null;
 };
 
 export type SupportChatMessage = {
@@ -201,7 +211,7 @@ function networkErrorMessage(tried: string[]): string {
   );
 }
 
-const REQUEST_TIMEOUT_MS = 45000;
+const REQUEST_TIMEOUT_MS = 60000;
 
 async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = REQUEST_TIMEOUT_MS): Promise<Response> {
   const controller = new AbortController();
@@ -253,6 +263,8 @@ async function request<T>(path: string, options: RequestInit = {}, auth = false)
   const bases = apiBaseCandidates();
   let lastNetworkError: Error | null = null;
   let lastHttpError: Error | null = null;
+  const method = String(options.method || 'GET').toUpperCase();
+  const isMutating = method !== 'GET' && method !== 'HEAD';
 
   for (const base of bases) {
     const url = `${base}${path}`;
@@ -267,12 +279,16 @@ async function request<T>(path: string, options: RequestInit = {}, auth = false)
           message = 'Server available nahi hai abhi. Thodi der baad try karo.';
         }
         lastHttpError = new Error(message);
-        // Wrong password etc. — same on all hosts; stop trying.
+        // Wrong password / validation — same on all hosts; stop trying.
         if (response.status === 401 || response.status === 422) {
           throw lastHttpError;
         }
         // Live API: do not keep retrying the same host on hard failures.
         if (API_MODE === 'live' && (response.status === 403 || response.status === 404 || response.status >= 500)) {
+          throw lastHttpError;
+        }
+        // Register/login already hit a server — do not POST again on another IP.
+        if (isMutating) {
           throw lastHttpError;
         }
         continue;
@@ -282,11 +298,23 @@ async function request<T>(path: string, options: RequestInit = {}, auth = false)
     } catch (e) {
       if (e instanceof Error) {
         const msg = e.message.toLowerCase();
-        if (msg.includes('credential') || msg.includes('incorrect') || msg.includes('password')) {
+        if (
+          msg.includes('credential') ||
+          msg.includes('incorrect') ||
+          msg.includes('password') ||
+          msg.includes('already registered') ||
+          msg.includes('must match')
+        ) {
+          throw e;
+        }
+        if (isMutating && (msg.includes('response nahi') || e === lastHttpError)) {
           throw e;
         }
       }
       lastNetworkError = e instanceof Error ? e : new Error('Network request failed');
+      if (isMutating && lastHttpError) {
+        throw lastHttpError;
+      }
     }
   }
 
@@ -452,6 +480,21 @@ export const api = {
     const qs = query.toString();
     return request<Service[]>(`/services${qs ? `?${qs}` : ''}`);
   },
+  forgotPassword: (email: string) =>
+    request<{ message: string }>('/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+  resetPassword: (payload: {
+    email: string;
+    token: string;
+    password: string;
+    password_confirmation: string;
+  }) =>
+    request<{ message: string }>('/reset-password', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
   login: async (email: string, password: string) => {
     const data = await request<{ token: string; user: User }>('/login', {
       method: 'POST',
@@ -598,7 +641,10 @@ export const api = {
     time_slot: string;
     payment_method?: string;
     measure?: number;
-    measure_unit?: 'sqft' | 'kg' | 'inch' | 'feet';
+    measure_unit?: 'sqft' | 'kg' | 'inch' | 'feet' | 'room' | 'rooms' | 'person' | 'persons' | 'point' | 'points' | 'unit' | 'units' | 'piece' | 'pieces';
+    issue_note?: string;
+    issue_photo_base64?: string;
+    issue_photo_ext?: string;
   }) =>
     request<{ booking: Booking; tracking: TrackingPayload }>(
       '/bookings',

@@ -14,7 +14,7 @@ export type PickedPhoto = {
 async function ensureLibraryPermission(): Promise<boolean> {
   const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (status !== 'granted') {
-    Alert.alert('Permission needed', 'Please allow photo library access to choose a profile picture.');
+    Alert.alert('Permission needed', 'Please allow photo library access to upload a photo of the issue.');
     return false;
   }
   return true;
@@ -23,7 +23,7 @@ async function ensureLibraryPermission(): Promise<boolean> {
 async function ensureCameraPermission(): Promise<boolean> {
   const { status } = await ImagePicker.requestCameraPermissionsAsync();
   if (status !== 'granted') {
-    Alert.alert('Permission needed', 'Please allow camera access to take a profile picture.');
+    Alert.alert('Permission needed', 'Please allow camera access to take a photo of the issue.');
     return false;
   }
   return true;
@@ -107,6 +107,43 @@ export async function takeProfilePhotoWithCamera(): Promise<PickedPhoto | null> 
 
   if (result.canceled || !result.assets[0]) return null;
   return toPickedPhoto(result.assets[0]);
+}
+
+export async function pickIssuePhotoFromGallery(): Promise<PickedPhoto | null> {
+  if (!(await ensureLibraryPermission())) return null;
+
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ['images'],
+    allowsEditing: false,
+    quality: 0.6,
+    exif: false,
+    base64: true,
+  });
+  if (result.canceled || !result.assets[0]) return null;
+  const photo = await toPickedPhoto(result.assets[0]);
+  return { ...photo, name: `issue.${photo.ext || 'jpg'}` };
+}
+
+export async function takeIssuePhotoWithCamera(): Promise<PickedPhoto | null> {
+  if (!(await ensureCameraPermission())) return null;
+
+  const result = await ImagePicker.launchCameraAsync({
+    allowsEditing: false,
+    quality: 0.6,
+    exif: false,
+    base64: true,
+  });
+  if (result.canceled || !result.assets[0]) return null;
+  const photo = await toPickedPhoto(result.assets[0]);
+  return { ...photo, name: `issue.${photo.ext || 'jpg'}` };
+}
+
+export function showIssuePhotoPicker(onCamera: () => void, onGallery: () => void): void {
+  Alert.alert('Issue photo', 'Upload a photo of the damaged or faulty item', [
+    { text: 'Take Photo', onPress: onCamera },
+    { text: 'Choose from Gallery', onPress: onGallery },
+    { text: 'Cancel', style: 'cancel' },
+  ]);
 }
 
 export function showProfilePhotoPicker(

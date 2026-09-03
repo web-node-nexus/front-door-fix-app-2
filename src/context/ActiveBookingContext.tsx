@@ -228,7 +228,7 @@ export function ActiveBookingProvider({ children }: { children: React.ReactNode 
   useEffect(() => {
     refresh();
     // Poll less aggressively — frequent setState was making the UI feel like a reload.
-    const timer = setInterval(refresh, 8000);
+    const timer = setInterval(refresh, 20000);
     return () => clearInterval(timer);
   }, [refresh]);
 

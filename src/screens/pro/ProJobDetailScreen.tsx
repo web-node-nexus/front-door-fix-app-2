@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Linking,
   Pressable,
   ScrollView,
@@ -15,6 +16,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ProActiveJob, proApi } from '../../api/pro';
 import { BRAND } from '../../config';
+import { displayAssetUrl } from '../../utils/avatarUrl';
 
 export default function ProJobDetailScreen() {
   const route = useRoute<any>();
@@ -75,6 +77,19 @@ export default function ProJobDetailScreen() {
           </Pressable>
         ) : null}
       </View>
+
+      {(job.issue_photo_url || job.issue_note) ? (
+        <View style={styles.card}>
+          <Text style={styles.section}>Customer issue</Text>
+          {job.issue_note ? <Text style={styles.meta}>{job.issue_note}</Text> : null}
+          {job.issue_photo_url ? (
+            <Image
+              source={{ uri: displayAssetUrl(job.issue_photo_url) || job.issue_photo_url }}
+              style={styles.issuePhoto}
+            />
+          ) : null}
+        </View>
+      ) : null}
 
       <Text style={styles.section}>Timeline</Text>
       <View style={styles.timeline}>
@@ -161,6 +176,7 @@ const styles = StyleSheet.create({
   card: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#E5E7EB' },
   service: { fontSize: 20, fontWeight: '800', color: BRAND.ink },
   meta: { fontSize: 14, color: BRAND.muted, marginTop: 6 },
+  issuePhoto: { width: '100%', height: 180, borderRadius: 12, marginTop: 10 },
   callBtn: {
     flexDirection: 'row',
     gap: 8,

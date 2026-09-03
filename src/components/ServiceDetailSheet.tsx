@@ -3,13 +3,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
-  Image,
   Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,15 +21,15 @@ import {
   serviceProcessSteps,
   serviceRating,
 } from '../utils/serviceDetails';
-import { categoryIcon, durationLabel, serviceImageUrl } from '../utils/serviceImagery';
+import CatalogImage from './CatalogImage';
+import { categoryIcon, durationLabel, serviceImageCandidates } from '../utils/serviceImagery';
 import { stripHtml } from '../utils/stripHtml';
+import MeasurePicker from './MeasurePicker';
 import {
-  availableMeasureUnits,
-  isAluminiumGlassService,
+  defaultMeasureUnit,
   lineAmount,
-  MEASURE_UNITS,
   MeasureUnit,
-  measureLabel,
+  measureShort,
   unitPrice,
 } from '../utils/measureUnits';
 
@@ -47,34 +45,22 @@ type Props = {
 
 export default function ServiceDetailSheet({ visible, service, onClose, onBook }: Props) {
   const insets = useSafeAreaInsets();
-  const { getQuantity, addItem, updateQuantity, getItem } = useCart();
+  const { getQuantity, addItem, getItem } = useCart();
   const { isFavorite, toggleFavorite } = useProfile();
-  const [measureUnit, setMeasureUnit] = useState<MeasureUnit>('sqft');
-  const [measure, setMeasure] = useState('1');
+  const [measureUnit, setMeasureUnit] = useState<MeasureUnit>('qty');
+  const [measure, setMeasure] = useState('0');
 
-  const alumGlass = isAluminiumGlassService(service);
-  const unitOptions = useMemo(
-    () => (service ? availableMeasureUnits(service) : []),
-    [service],
-  );
-  const measureValue = Math.max(0.1, parseFloat(measure) || 0);
+  const measureValue = Math.max(0, parseFloat(measure) || 0);
   const estimated = useMemo(() => {
     if (!service) return 0;
-    if (!alumGlass) return Number(service.price);
     return lineAmount(unitPrice(service, measureUnit), measureValue, 1);
-  }, [alumGlass, service, measureValue, measureUnit]);
+  }, [service, measureValue, measureUnit]);
 
   useEffect(() => {
     if (!service || !visible) return;
     const existing = getItem(service.id);
-    if (existing?.measureUnit) {
-      setMeasureUnit(existing.measureUnit);
-      setMeasure(String(existing.measure ?? 1));
-    } else {
-      const opts = availableMeasureUnits(service);
-      setMeasureUnit(opts[0] ?? 'sqft');
-      setMeasure('1');
-    }
+    setMeasureUnit(existing?.measureUnit ?? defaultMeasureUnit(service));
+    setMeasure(existing?.measure && existing.measure > 0 ? String(existing.measure) : '0');
   }, [service?.id, visible, getItem]);
 
   if (!service) return null;
@@ -88,12 +74,8 @@ export default function ServiceDetailSheet({ visible, service, onClose, onBook }
   const slug = service.category?.slug;
 
   const addWithMeasure = () => {
-    if (!alumGlass) {
-      addItem(service);
-      return;
-    }
     if (!measureValue || measureValue <= 0) {
-      Alert.alert('Enter measure', 'Please enter a valid size/weight amount.');
+      Alert.alert('Enter quantity', 'Please enter how much you need for this service.');
       return;
     }
     addItem(service, { measureUnit, measure: measureValue });
@@ -112,7 +94,7 @@ export default function ServiceDetailSheet({ visible, service, onClose, onBook }
             keyboardShouldPersistTaps="handled"
           >
             <View style={styles.imageWrap}>
-              <Image source={{ uri: serviceImageUrl(service) }} style={styles.image} resizeMode="cover" />
+              <CatalogImage uris={serviceImageCandidates(service)} style={styles.image} />
               <View style={styles.imageBadge}>
                 <Text style={styles.imageBadgeText}>{categoryIcon(slug)}</Text>
               </View>
@@ -145,7 +127,7 @@ export default function ServiceDetailSheet({ visible, service, onClose, onBook }
               <View style={styles.priceCard}>
                 <View>
                   <Text style={styles.priceLabel}>
-                    {alumGlass ? `Rate / ${measureLabel(measureUnit).toLowerCase()}` : 'Service charges'}
+                    Rate / {measureShort(measureUnit)}
                   </Text>
                   <Text style={styles.price}>₹{unitPrice(service, measureUnit).toLocaleString('en-IN')}</Text>
                 </View>
@@ -154,43 +136,14 @@ export default function ServiceDetailSheet({ visible, service, onClose, onBook }
                 </View>
               </View>
 
-              {alumGlass ? (
-                <View style={styles.measureCard}>
-                  <Text style={styles.sectionTitleMeasure}>Select unit (Aluminium & Glass)</Text>
-                  <View style={styles.unitRow}>
-                    {MEASURE_UNITS.filter((u) => unitOptions.includes(u.value)).map((u) => {
-                      const active = measureUnit === u.value;
-                      return (
-                        <Pressable
-                          key={u.value}
-                          style={[styles.unitChip, active && styles.unitChipActive]}
-                          onPress={() => setMeasureUnit(u.value)}
-                        >
-                          <Text style={[styles.unitChipText, active && styles.unitChipTextActive]}>
-                            {u.label}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                  <Text style={styles.measureLabel}>Enter {measureLabel(measureUnit).toLowerCase()}</Text>
-                  <View style={styles.measureInputRow}>
-                    <TextInput
-                      style={styles.measureInput}
-                      value={measure}
-                      onChangeText={setMeasure}
-                      keyboardType="decimal-pad"
-                      placeholder="e.g. 10"
-                      placeholderTextColor={BRAND.light}
-                    />
-                    <Text style={styles.measureUnitTag}>{measureLabel(measureUnit)}</Text>
-                  </View>
-                  <Text style={styles.estimateText}>
-                    Estimated total:{' '}
-                    <Text style={styles.estimateValue}>₹{estimated.toLocaleString('en-IN')}</Text>
-                  </Text>
-                </View>
-              ) : null}
+              <MeasurePicker
+                service={service}
+                measureUnit={measureUnit}
+                measure={measure}
+                estimated={estimated}
+                onUnitChange={setMeasureUnit}
+                onMeasureChange={setMeasure}
+              />
 
               <Text style={styles.sectionTitle}>About this service</Text>
               <Text style={styles.description}>
@@ -228,43 +181,21 @@ export default function ServiceDetailSheet({ visible, service, onClose, onBook }
           </ScrollView>
 
           <View style={styles.footer}>
-            {alumGlass ? (
-              <Pressable style={styles.addBtn} onPress={addWithMeasure}>
-                <Ionicons name="cart-outline" size={18} color={BRAND.primary} />
-                <Text style={styles.addText}>{qty > 0 ? 'Update' : 'Add'}</Text>
-              </Pressable>
-            ) : qty > 0 ? (
-              <View style={styles.stepper}>
-                <Pressable style={styles.stepBtn} onPress={() => updateQuantity(service.id, qty - 1)}>
-                  <Ionicons name="remove" size={20} color={BRAND.primary} />
-                </Pressable>
-                <Text style={styles.qty}>{qty}</Text>
-                <Pressable style={styles.stepBtn} onPress={() => updateQuantity(service.id, qty + 1)}>
-                  <Ionicons name="add" size={20} color={BRAND.primary} />
-                </Pressable>
-              </View>
-            ) : (
-              <Pressable style={styles.addBtn} onPress={() => addItem(service)}>
-                <Ionicons name="cart-outline" size={18} color={BRAND.primary} />
-                <Text style={styles.addText}>Add</Text>
-              </Pressable>
-            )}
+            <Pressable style={styles.addBtn} onPress={addWithMeasure}>
+              <Ionicons name="cart-outline" size={18} color={BRAND.primary} />
+              <Text style={styles.addText}>{qty > 0 ? 'Update' : 'Add'}</Text>
+            </Pressable>
 
             <Pressable
               style={styles.bookBtn}
               onPress={() => {
-                if (alumGlass) {
-                  if (!measureValue || measureValue <= 0) {
-                    Alert.alert('Enter measure', 'Please enter a valid size/weight amount.');
-                    return;
-                  }
-                  addWithMeasure();
+                if (!measureValue || measureValue <= 0) {
+                  Alert.alert('Enter quantity', 'Please enter how much you need for this service.');
+                  return;
                 }
+                addWithMeasure();
                 onClose();
-                onBook(
-                  service,
-                  alumGlass ? { measureUnit, measure: measureValue } : undefined,
-                );
+                onBook(service, { measureUnit, measure: measureValue });
               }}
             >
               <LinearGradient colors={[BRAND.primary, BRAND.purple]} style={styles.bookGradient}>

@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ProRequest } from '../../api/client';
 import { proApi } from '../../api/pro';
 import { BRAND } from '../../config';
+import { displayAssetUrl } from '../../utils/avatarUrl';
 
 function Countdown({ expiresAt }: { expiresAt?: number }) {
   const [left, setLeft] = useState(0);
@@ -81,6 +82,18 @@ export default function ProRequestCard({ request, onAccepted, onRejected }: Prop
         {request.pincode ? ` · ${request.pincode}` : ''}
       </Text>
       {request.distance ? <Text style={styles.distance}>{request.distance} away</Text> : null}
+      {(request.issue_photo_url || request.issue_note) ? (
+        <View style={styles.issueBox}>
+          <Text style={styles.issueLabel}>Customer issue</Text>
+          {request.issue_note ? <Text style={styles.issueNote}>{request.issue_note}</Text> : null}
+          {request.issue_photo_url ? (
+            <Image
+              source={{ uri: displayAssetUrl(request.issue_photo_url) || request.issue_photo_url }}
+              style={styles.issuePhoto}
+            />
+          ) : null}
+        </View>
+      ) : null}
       <Countdown expiresAt={request.expires_at} />
       <View style={styles.actions}>
         <Pressable style={[styles.rejectBtn, busy && styles.disabled]} onPress={reject} disabled={!!busy}>
@@ -118,6 +131,15 @@ const styles = StyleSheet.create({
   meta: { fontSize: 12, color: BRAND.muted, marginTop: 6, fontWeight: '600' },
   address: { fontSize: 13, color: BRAND.ink, marginTop: 6, lineHeight: 18 },
   distance: { fontSize: 12, color: BRAND.primary, marginTop: 6, fontWeight: '700' },
+  issueBox: {
+    marginTop: 10,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 10,
+  },
+  issueLabel: { fontSize: 11, fontWeight: '800', color: BRAND.ink },
+  issueNote: { fontSize: 12, color: BRAND.muted, marginTop: 4 },
+  issuePhoto: { width: '100%', height: 140, borderRadius: 10, marginTop: 8 },
   timer: { fontSize: 11, color: '#B45309', marginTop: 8, fontWeight: '700' },
   actions: { flexDirection: 'row', gap: 10, marginTop: 14 },
   rejectBtn: {

@@ -12,7 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BRAND } from '../config';
 
-export type SortOption = 'popular' | 'name' | 'price_asc' | 'price_desc';
+export type SortOption = 'latest' | 'popular' | 'name' | 'price_asc' | 'price_desc';
 
 export type ServiceFilters = {
   category: string;
@@ -29,6 +29,7 @@ type Props = {
 };
 
 const SORT_OPTIONS: { id: SortOption; label: string }[] = [
+  { id: 'latest', label: 'Latest' },
   { id: 'popular', label: 'Popular' },
   { id: 'name', label: 'Name' },
   { id: 'price_asc', label: 'Price: Low to High' },

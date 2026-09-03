@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { Service } from '../api/client';
 import {
-  isAluminiumGlassService,
+  defaultMeasureUnit,
   lineAmount,
   MeasureUnit,
   unitPrice,
@@ -11,7 +11,6 @@ import {
 export type CartItem = {
   service: Service;
   quantity: number;
-  /** Aluminium & Glass only */
   measureUnit?: MeasureUnit;
   measure?: number;
 };
@@ -35,13 +34,15 @@ type CartContextValue = {
   clearCart: () => void;
 };
 
-const CART_KEY = '@fd_cart_v2';
+const CART_KEY = '@fd_cart_v3';
 
 const CartContext = createContext<CartContextValue | null>(null);
 
 function itemLineTotal(item: CartItem): number {
-  if (isAluminiumGlassService(item.service) && item.measureUnit) {
-    return lineAmount(unitPrice(item.service, item.measureUnit), item.measure ?? 1, item.quantity);
+  const unit = item.measureUnit ?? defaultMeasureUnit(item.service);
+  const measure = item.measure ?? 0;
+  if (measure > 0) {
+    return lineAmount(unitPrice(item.service, unit), measure, item.quantity || 1);
   }
   return Number(item.service.price) * item.quantity;
 }
@@ -75,11 +76,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       itemCount,
       totalAmount,
       addItem(service: Service, options?: AddItemOptions) {
-        const alum = isAluminiumGlassService(service);
-        const measureUnit = alum ? options?.measureUnit : undefined;
-        const measure = alum ? Math.max(0.1, Number(options?.measure) || 1) : undefined;
+        const measureUnit = options?.measureUnit ?? defaultMeasureUnit(service);
+        const measure = Math.max(0, Number(options?.measure) || 0);
 
-        if (alum && !measureUnit) {
+        if (!(measure > 0)) {
           return;
         }
 
@@ -89,18 +89,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           persist(
             items.map((i) => {
               if (i.service.id !== service.id) return i;
-              if (alum) {
-                // Same unit → add measures; different unit → replace selection.
-                if (i.measureUnit === measureUnit) {
-                  return {
-                    ...i,
-                    measure: (i.measure ?? 1) + (measure ?? 1),
-                    measureUnit,
-                  };
-                }
-                return { ...i, measure, measureUnit, quantity: 1 };
+              if (i.measureUnit === measureUnit) {
+                return {
+                  ...i,
+                  measure: (i.measure ?? 0) + measure,
+                  measureUnit,
+                  quantity: 1,
+                };
               }
-              return { ...i, quantity: i.quantity + 1 };
+              return { ...i, measure, measureUnit, quantity: 1 };
             }),
           );
           return;
@@ -111,7 +108,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           {
             service,
             quantity: 1,
-            ...(alum ? { measureUnit, measure } : {}),
+            measureUnit,
+            measure,
           },
         ]);
       },
@@ -124,17 +122,28 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         persist(
-          items.map((i) => (i.service.id === serviceId ? { ...i, quantity } : i)),
+          items.map((i) => {
+            if (i.service.id !== serviceId) return i;
+            if (i.measure && i.measure > 0) {
+              return { ...i, measure: quantity, quantity: 1 };
+            }
+            return { ...i, quantity };
+          }),
         );
       },
       updateMeasure(serviceId: number, measure: number, measureUnit?: MeasureUnit) {
+        if (measure <= 0) {
+          persist(items.filter((i) => i.service.id !== serviceId));
+          return;
+        }
         persist(
           items.map((i) => {
             if (i.service.id !== serviceId) return i;
             return {
               ...i,
-              measure: Math.max(0.1, measure),
-              measureUnit: measureUnit ?? i.measureUnit,
+              measure,
+              measureUnit: measureUnit ?? i.measureUnit ?? defaultMeasureUnit(i.service),
+              quantity: 1,
             };
           }),
         );
@@ -143,7 +152,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         return items.some((i) => i.service.id === serviceId);
       },
       getQuantity(serviceId: number) {
-        return items.find((i) => i.service.id === serviceId)?.quantity ?? 0;
+        const item = items.find((i) => i.service.id === serviceId);
+        if (!item) return 0;
+        if (item.measure && item.measure > 0) return item.measure;
+        return item.quantity;
       },
       getItem(serviceId: number) {
         return items.find((i) => i.service.id === serviceId);

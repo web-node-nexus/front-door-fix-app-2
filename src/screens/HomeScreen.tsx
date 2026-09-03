@@ -1,11 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -18,21 +17,21 @@ import FilterModal, { ServiceFilters } from '../components/FilterModal';
 import HomeGridServiceCard from '../components/HomeGridServiceCard';
 import HomeServiceCard from '../components/HomeServiceCard';
 import { BRAND } from '../config';
-import { useActiveBooking } from '../context/ActiveBookingContext';
 import { useLocale } from '../context/LocaleContext';
 import { useLocation } from '../context/LocationContext';
 import { useNotifications } from '../context/NotificationContext';
 import { OFFERS, REVIEWS, WHY_CHOOSE } from '../data/mock';
 import { useScreenPadding } from '../hooks/useScreenPadding';
 import { navigateToServices } from '../navigation/navigationRef';
-import { categoryIcon, categoryImageUrl } from '../utils/serviceImagery';
+import CatalogImage from '../components/CatalogImage';
+import { categoryIcon, categoryImageCandidates } from '../utils/serviceImagery';
 
 export default function HomeScreen() {
   const nav = useNavigation<any>();
   const { location } = useLocation();
   const { t } = useLocale();
-  const { refresh: refreshActiveBooking } = useActiveBooking();
-  const { unreadCount, refresh: refreshNotifications } = useNotifications();
+  const { unreadCount } = useNotifications();
+  const catalogBusy = useRef(false);
   const screenPad = useScreenPadding({ headerless: true });
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -41,7 +40,7 @@ export default function HomeScreen() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [filters, setFilters] = useState<ServiceFilters>({
     category: 'All',
-    sort: 'popular',
+    sort: 'latest',
     maxPrice: null,
   });
 
@@ -51,21 +50,30 @@ export default function HomeScreen() {
     navigateToServices(params);
   }, []);
 
-  useEffect(() => {
-    Promise.all([api.home(), api.services({ sort: 'popular' })])
+  const loadCatalog = useCallback(() => {
+    if (catalogBusy.current) return;
+    catalogBusy.current = true;
+    Promise.all([api.home(), api.services({ sort: 'latest' })])
       .then(([homeData, allServices]) => {
         setCategories(homeData.categories);
-        setServices(homeData.featured_services);
-        setGridServices(allServices.slice(0, 10));
+        setServices(homeData.featured_services.slice(0, 8));
+        setGridServices(allServices.slice(0, 8));
       })
-      .finally(() => setLoading(false));
+      .catch(() => {
+        setCategories([]);
+        setServices([]);
+        setGridServices([]);
+      })
+      .finally(() => {
+        catalogBusy.current = false;
+        setLoading(false);
+      });
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      refreshActiveBooking();
-      refreshNotifications();
-    }, [refreshActiveBooking, refreshNotifications]),
+      loadCatalog();
+    }, [loadCatalog]),
   );
 
   if (loading) {
@@ -161,11 +169,9 @@ export default function HomeScreen() {
             onPress={() => goServices({ category: cat.slug })}
             android_ripple={{ color: 'rgba(255,255,255,0.2)' }}
           >
-            <Image
-              source={{ uri: categoryImageUrl(cat.slug, cat.image) }}
+            <CatalogImage
+              uris={categoryImageCandidates(cat.slug, cat.image, cat.image_url)}
               style={styles.catImage}
-              resizeMode="cover"
-              pointerEvents="none"
             />
             <View style={styles.catOverlay} pointerEvents="none" />
             <View style={styles.catInfo} pointerEvents="none">

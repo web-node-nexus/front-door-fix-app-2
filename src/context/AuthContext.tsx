@@ -135,6 +135,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSubmitting(true);
         try {
           const { user: registered } = await api.register(payload);
+          if (!registered?.id) {
+            throw new Error('Could not create account. Please try again.');
+          }
           setUser(registered);
         } finally {
           setSubmitting(false);

@@ -1,11 +1,10 @@
-import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Service } from '../api/client';
 import { BRAND } from '../config';
 import { useCart } from '../context/CartContext';
 import { durationLabel } from '../utils/serviceImagery';
-import { isAluminiumGlassService } from '../utils/measureUnits';
+import { categoryMeasure, unitPrice } from '../utils/measureUnits';
 import { stripHtml } from '../utils/stripHtml';
 
 type Props = {
@@ -14,10 +13,10 @@ type Props = {
 };
 
 export default function ServiceListItem({ service, onPress }: Props) {
-  const { getQuantity, addItem, updateQuantity } = useCart();
+  const { getQuantity } = useCart();
   const qty = getQuantity(service.id);
-  const price = Number(service.price);
-  const alumGlass = isAluminiumGlassService(service);
+  const price = unitPrice(service);
+  const unit = categoryMeasure(service.category?.slug).short;
 
   return (
     <Pressable style={styles.row} onPress={onPress}>
@@ -31,40 +30,16 @@ export default function ServiceListItem({ service, onPress }: Props) {
           </Text>
         )}
         <View style={styles.priceRow}>
-          <Text style={styles.price}>₹{price.toLocaleString('en-IN')}</Text>
+          <Text style={styles.price}>₹{price.toLocaleString('en-IN')} / {unit}</Text>
           {service.duration_hours ? (
             <Text style={styles.duration}>{durationLabel(service.duration_hours)}</Text>
           ) : null}
         </View>
       </View>
 
-      {alumGlass ? (
-        <Pressable style={styles.addBtn} onPress={onPress}>
-          <Text style={styles.addText}>{qty > 0 ? 'Edit' : 'Add'}</Text>
-        </Pressable>
-      ) : qty > 0 ? (
-        <View style={styles.stepper}>
-          <Pressable
-            style={styles.stepBtn}
-            onPress={() => updateQuantity(service.id, qty - 1)}
-            hitSlop={6}
-          >
-            <Ionicons name="remove" size={18} color={BRAND.primary} />
-          </Pressable>
-          <Text style={styles.qty}>{qty}</Text>
-          <Pressable
-            style={styles.stepBtn}
-            onPress={() => updateQuantity(service.id, qty + 1)}
-            hitSlop={6}
-          >
-            <Ionicons name="add" size={18} color={BRAND.primary} />
-          </Pressable>
-        </View>
-      ) : (
-        <Pressable style={styles.addBtn} onPress={() => addItem(service)}>
-          <Text style={styles.addText}>Add</Text>
-        </Pressable>
-      )}
+      <Pressable style={styles.addBtn} onPress={onPress}>
+        <Text style={styles.addText}>{qty > 0 ? 'Edit' : 'Add'}</Text>
+      </Pressable>
     </Pressable>
   );
 }

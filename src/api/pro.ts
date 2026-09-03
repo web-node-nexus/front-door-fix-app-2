@@ -76,6 +76,8 @@ export type ProActiveJob = {
     work_in_progress: boolean;
     collect_payment: boolean;
   };
+  issue_note?: string | null;
+  issue_photo_url?: string | null;
 };
 
 export type ProPollPayload = {

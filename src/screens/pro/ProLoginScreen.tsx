@@ -94,6 +94,10 @@ export default function ProLoginScreen() {
               placeholder="Enter password"
             />
 
+            <Pressable style={styles.forgotWrap} onPress={() => navigation.navigate('ForgotPassword' as never)}>
+              <Text style={styles.forgotLink}>Forgot Password?</Text>
+            </Pressable>
+
             <AuthButton label="Login as Professional" onPress={handleLogin} loading={submitting} />
 
             <View style={styles.registerRow}>
@@ -158,6 +162,8 @@ const styles = StyleSheet.create({
   },
   registerHint: { fontSize: 14, color: BRAND.muted, fontWeight: '500' },
   registerLink: { fontSize: 14, color: '#1A1A2E', fontWeight: '800' },
+  forgotWrap: { alignItems: 'flex-end', marginTop: 4, marginBottom: 8 },
+  forgotLink: { fontSize: 13, fontWeight: '800', color: '#1A1A2E' },
   demoBox: {
     flexDirection: 'row',
     alignItems: 'center',

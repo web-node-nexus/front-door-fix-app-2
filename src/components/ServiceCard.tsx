@@ -1,14 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { Alert, Image, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import { Service } from '../api/client';
 import { BRAND } from '../config';
 import { useCart } from '../context/CartContext';
 import { useProfile } from '../context/ProfileContext';
-import { categoryIcon, durationLabel, serviceImageUrl } from '../utils/serviceImagery';
+import CatalogImage from './CatalogImage';
+import { categoryIcon, durationLabel, serviceImageCandidates } from '../utils/serviceImagery';
 import { stripHtml } from '../utils/stripHtml';
-import { isAluminiumGlassService, lineAmount, measureLabel, unitPrice } from '../utils/measureUnits';
+import { categoryMeasure, measureShort, unitPrice } from '../utils/measureUnits';
 
 type Props = {
   service: Service;
@@ -20,12 +21,13 @@ type Props = {
 
 export default function ServiceCard({ service, onPress, onBook, showFavorite, showCart }: Props) {
   const { isFavorite, toggleFavorite } = useProfile();
-  const { getQuantity, addItem, updateQuantity, getItem } = useCart();
+  const { getQuantity, getItem } = useCart();
   const fav = isFavorite(service.id);
   const qty = getQuantity(service.id);
   const cartItem = getItem(service.id);
   const slug = service.category?.slug;
-  const alumGlass = isAluminiumGlassService(service);
+  const rate = unitPrice(service);
+  const unitShort = measureShort(cartItem?.measureUnit ?? categoryMeasure(slug).unit);
 
   const plainDescription = stripHtml(service.description);
 
@@ -49,7 +51,7 @@ export default function ServiceCard({ service, onPress, onBook, showFavorite, sh
   return (
     <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.imageWrap}>
-        <Image source={{ uri: serviceImageUrl(service) }} style={styles.image} resizeMode="cover" />
+        <CatalogImage uris={serviceImageCandidates(service)} style={styles.image} />
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{categoryIcon(slug)}</Text>
         </View>
@@ -83,59 +85,30 @@ export default function ServiceCard({ service, onPress, onBook, showFavorite, sh
           </View>
           <View style={styles.priceWrap}>
             <Text style={styles.priceLabel}>From</Text>
-            <Text style={styles.price}>₹{Number(service.price).toLocaleString('en-IN')}</Text>
+            <Text style={styles.price}>₹{rate.toLocaleString('en-IN')}</Text>
           </View>
         </View>
-        {alumGlass && cartItem?.measureUnit ? (
+        {cartItem?.measure && cartItem.measure > 0 ? (
           <Text style={styles.measureHint}>
-            {cartItem.measure} {measureLabel(cartItem.measureUnit)} · ₹
-            {lineAmount(unitPrice(service, cartItem.measureUnit), cartItem.measure ?? 1, cartItem.quantity).toLocaleString('en-IN')}
+            {cartItem.measure} {measureShort(cartItem.measureUnit)} · ₹
+            {(rate * cartItem.measure).toLocaleString('en-IN')}
           </Text>
-        ) : null}
+        ) : (
+          <Text style={styles.measureHint}>From ₹{rate.toLocaleString('en-IN')} / {unitShort || 'qty'}</Text>
+        )}
 
         <View style={styles.actions}>
           {showCart ? (
-            alumGlass ? (
-              <Pressable
-                style={styles.addBtn}
-                onPress={(e) => {
-                  e.stopPropagation?.();
-                  onPress?.();
-                }}
-              >
-                <Ionicons name="cart-outline" size={16} color={BRAND.primary} />
-                <Text style={styles.addText}>{qty > 0 ? 'Edit unit' : 'Add'}</Text>
-              </Pressable>
-            ) : qty > 0 ? (
-              <View style={styles.stepper}>
-                <Pressable
-                  style={styles.stepBtn}
-                  onPress={() => updateQuantity(service.id, qty - 1)}
-                  hitSlop={6}
-                >
-                  <Ionicons name="remove" size={18} color={BRAND.primary} />
-                </Pressable>
-                <Text style={styles.qty}>{qty}</Text>
-                <Pressable
-                  style={styles.stepBtn}
-                  onPress={() => updateQuantity(service.id, qty + 1)}
-                  hitSlop={6}
-                >
-                  <Ionicons name="add" size={18} color={BRAND.primary} />
-                </Pressable>
-              </View>
-            ) : (
-              <Pressable
-                style={styles.addBtn}
-                onPress={(e) => {
-                  e.stopPropagation?.();
-                  addItem(service);
-                }}
-              >
-                <Ionicons name="cart-outline" size={16} color={BRAND.primary} />
-                <Text style={styles.addText}>Add</Text>
-              </Pressable>
-            )
+            <Pressable
+              style={styles.addBtn}
+              onPress={(e) => {
+                e.stopPropagation?.();
+                onPress?.();
+              }}
+            >
+              <Ionicons name="cart-outline" size={16} color={BRAND.primary} />
+              <Text style={styles.addText}>{qty > 0 ? 'Edit qty' : 'Add'}</Text>
+            </Pressable>
           ) : null}
 
           <Pressable

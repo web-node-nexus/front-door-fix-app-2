@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { Dimensions, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Service } from '../api/client';
 import { BRAND } from '../config';
-import { durationLabel, serviceImageUrl } from '../utils/serviceImagery';
+import CatalogImage from './CatalogImage';
+import { durationLabel, serviceImageCandidates } from '../utils/serviceImagery';
 
 const GAP = 10;
 const H_PAD = 40;
@@ -24,7 +25,7 @@ export default function HomeGridServiceCard({ service, onPress }: Props) {
       onPress={onPress}
     >
       <View style={styles.imageWrap}>
-        <Image source={{ uri: serviceImageUrl(service) }} style={styles.image} resizeMode="cover" />
+        <CatalogImage uris={serviceImageCandidates(service)} style={styles.image} />
         {service.category?.name ? (
           <View style={styles.chip}>
             <Text style={styles.chipText} numberOfLines={1}>{service.category.name}</Text>

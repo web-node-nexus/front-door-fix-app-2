@@ -106,6 +106,10 @@ export default function LoginScreen() {
             placeholder={t('login.passwordPlaceholder')}
           />
 
+          <Pressable style={styles.forgotWrap} onPress={() => navigation.navigate('ForgotPassword' as never)}>
+            <Text style={styles.forgotLink}>{t('login.forgot')}</Text>
+          </Pressable>
+
           <AuthButton label={t('login.button')} onPress={handleLogin} loading={submitting} />
 
           <View style={styles.registerRow}>
@@ -240,6 +244,8 @@ const styles = StyleSheet.create({
   },
   registerHint: { fontSize: 14, color: BRAND.muted, fontWeight: '500' },
   registerLink: { fontSize: 14, color: BRAND.primary, fontWeight: '800' },
+  forgotWrap: { alignItems: 'flex-end', marginTop: 4, marginBottom: 8 },
+  forgotLink: { fontSize: 13, fontWeight: '800', color: BRAND.primary },
   proDivider: {
     flexDirection: 'row',
     alignItems: 'center',

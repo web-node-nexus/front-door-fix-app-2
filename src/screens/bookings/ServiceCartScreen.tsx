@@ -7,11 +7,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BRAND } from '../../config';
 import { useCart } from '../../context/CartContext';
 import { useScreenPadding } from '../../hooks/useScreenPadding';
-import { durationLabel } from '../../utils/serviceImagery';
 import {
-  isAluminiumGlassService,
+  defaultMeasureUnit,
   lineAmount,
-  measureLabel,
+  measureShort,
   unitPrice,
 } from '../../utils/measureUnits';
 
@@ -19,7 +18,7 @@ export default function ServiceCartScreen() {
   const nav = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const pad = useScreenPadding({ extraBottom: 100 });
-  const { items, itemCount, totalAmount, updateQuantity, removeItem } = useCart();
+  const { items, itemCount, totalAmount, updateMeasure, removeItem } = useCart();
 
   return (
     <View style={styles.root}>
@@ -49,10 +48,9 @@ export default function ServiceCartScreen() {
               {itemCount} {itemCount === 1 ? 'service' : 'services'} selected
             </Text>
             {items.map((item) => {
-              const alum = isAluminiumGlassService(item.service);
-              const line = alum
-                ? lineAmount(unitPrice(item.service, item.measureUnit), item.measure ?? 1, item.quantity)
-                : Number(item.service.price) * item.quantity;
+              const unit = item.measureUnit ?? defaultMeasureUnit(item.service);
+              const measure = item.measure && item.measure > 0 ? item.measure : item.quantity;
+              const line = lineAmount(unitPrice(item.service, unit), measure, 1);
 
               return (
                 <View key={item.service.id} style={styles.item}>
@@ -62,30 +60,26 @@ export default function ServiceCartScreen() {
                       <Text style={styles.itemCat}>{item.service.category.name}</Text>
                     ) : null}
                     <Text style={styles.itemMeta}>
-                      {alum && item.measureUnit
-                        ? `${item.measure} ${measureLabel(item.measureUnit)} · ₹${unitPrice(item.service, item.measureUnit).toLocaleString('en-IN')}/${measureLabel(item.measureUnit).toLowerCase()}`
-                        : `${durationLabel(item.service.duration_hours)} · ₹${Number(item.service.price).toLocaleString('en-IN')} each`}
+                      {measure} {measureShort(unit)} · ₹{unitPrice(item.service, unit).toLocaleString('en-IN')}/{measureShort(unit)}
                     </Text>
                   </View>
                   <View style={styles.itemRight}>
                     <Text style={styles.itemTotal}>₹{line.toLocaleString('en-IN')}</Text>
-                    {!alum ? (
-                      <View style={styles.stepper}>
-                        <Pressable
-                          style={styles.stepBtn}
-                          onPress={() => updateQuantity(item.service.id, item.quantity - 1)}
-                        >
-                          <Ionicons name="remove" size={16} color={BRAND.primary} />
-                        </Pressable>
-                        <Text style={styles.qty}>{item.quantity}</Text>
-                        <Pressable
-                          style={styles.stepBtn}
-                          onPress={() => updateQuantity(item.service.id, item.quantity + 1)}
-                        >
-                          <Ionicons name="add" size={16} color={BRAND.primary} />
-                        </Pressable>
-                      </View>
-                    ) : null}
+                    <View style={styles.stepper}>
+                      <Pressable
+                        style={styles.stepBtn}
+                        onPress={() => updateMeasure(item.service.id, measure - 1, unit)}
+                      >
+                        <Ionicons name="remove" size={16} color={BRAND.primary} />
+                      </Pressable>
+                      <Text style={styles.qty}>{measure}</Text>
+                      <Pressable
+                        style={styles.stepBtn}
+                        onPress={() => updateMeasure(item.service.id, measure + 1, unit)}
+                      >
+                        <Ionicons name="add" size={16} color={BRAND.primary} />
+                      </Pressable>
+                    </View>
                     <Pressable onPress={() => removeItem(item.service.id)} hitSlop={8}>
                       <Text style={styles.remove}>Remove</Text>
                     </Pressable>

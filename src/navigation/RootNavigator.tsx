@@ -35,6 +35,8 @@ import ScanQrScreen from '../screens/ScanQrScreen';
 
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
+import ResetPasswordScreen from '../screens/ResetPasswordScreen';
 import ProLoginScreen from '../screens/pro/ProLoginScreen';
 import ProRegisterScreen from '../screens/pro/ProRegisterScreen';
 import ProNavigator from './ProNavigator';
@@ -334,6 +336,16 @@ export default function RootNavigator() {
         ) : (
           <>
             <RootStack.Screen name="Login" component={LoginScreen} />
+            <RootStack.Screen
+              name="ForgotPassword"
+              component={ForgotPasswordScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
+            <RootStack.Screen
+              name="ResetPassword"
+              component={ResetPasswordScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
             <RootStack.Screen
               name="Register"
               component={RegisterScreen}

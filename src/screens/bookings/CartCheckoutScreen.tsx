@@ -18,10 +18,12 @@ import KeyboardTextInput from '../../components/KeyboardTextInput';
 import { BRAND } from '../../config';
 import { useActiveBooking } from '../../context/ActiveBookingContext';
 import { useCart } from '../../context/CartContext';
-import { unitPrice } from '../../utils/measureUnits';
+import { defaultMeasureUnit, measureShort, unitPrice } from '../../utils/measureUnits';
 import { pincodeForCity, SERVICE_CITIES, useLocation } from '../../context/LocationContext';
 import { nextDates, TIME_SLOTS } from '../../data/bookingSlots';
 import { useScreenPadding } from '../../hooks/useScreenPadding';
+import IssuePhotoField from '../../components/IssuePhotoField';
+import { PickedPhoto } from '../../utils/profilePhoto';
 
 export default function CartCheckoutScreen() {
   const nav = useNavigation<any>();
@@ -42,6 +44,8 @@ export default function CartCheckoutScreen() {
   const [saving, setSaving] = useState(false);
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
   const [bookedCount, setBookedCount] = useState(0);
+  const [issuePhoto, setIssuePhoto] = useState<PickedPhoto | null>(null);
+  const [issueNote, setIssueNote] = useState('');
 
   useFocusEffect(
     useCallback(() => {
@@ -99,6 +103,11 @@ export default function CartCheckoutScreen() {
       return;
     }
 
+    if (items.some((item) => !((item.measure && item.measure > 0) || item.quantity > 0))) {
+      Alert.alert('Quantity required', 'Please set quantity for each service in the cart.');
+      return;
+    }
+
     await updateLocation({ city: city.trim(), pincode: pincode.trim(), addressLine: addressLine.trim() });
 
     setSaving(true);
@@ -107,28 +116,29 @@ export default function CartCheckoutScreen() {
 
     try {
       for (const item of items) {
-        const alum = item.measureUnit && item.service.category?.slug === 'aluminium-glass-work';
-        const loops = alum ? 1 : item.quantity;
+        const unit = item.measureUnit ?? defaultMeasureUnit(item.service);
+        const measure = item.measure && item.measure > 0 ? item.measure : item.quantity;
 
-        for (let i = 0; i < loops; i += 1) {
-          const res = await api.storeBooking({
-            service_id: item.service.id,
-            address,
-            city: city.trim(),
-            pincode: pincode.trim(),
-            booking_date: date,
-            time_slot: slot,
-            payment_method: paymentMethod === 'upi' ? 'upi' : 'cod',
-            ...(alum
-              ? {
-                  measure: item.measure ?? 1,
-                  measure_unit: item.measureUnit,
-                }
-              : {}),
-          });
-          lastBooking = res.booking;
-          successCount += 1;
-        }
+        const res = await api.storeBooking({
+          service_id: item.service.id,
+          address,
+          city: city.trim(),
+          pincode: pincode.trim(),
+          booking_date: date,
+          time_slot: slot,
+          payment_method: paymentMethod === 'upi' ? 'upi' : 'cod',
+          measure,
+          measure_unit: unit ?? defaultMeasureUnit(item.service),
+          ...(issueNote.trim() ? { issue_note: issueNote.trim() } : {}),
+          ...(issuePhoto?.base64
+            ? {
+                issue_photo_base64: issuePhoto.base64,
+                issue_photo_ext: issuePhoto.ext || 'jpg',
+              }
+            : {}),
+        });
+        lastBooking = res.booking;
+        successCount += 1;
       }
 
       setBookedCount(successCount);
@@ -185,16 +195,16 @@ export default function CartCheckoutScreen() {
           {items.map((item) => (
             <View key={item.service.id} style={styles.cartLine}>
               <Text style={styles.cartName} numberOfLines={1}>
-                {item.measureUnit
-                  ? `${item.measure} ${item.measureUnit} · ${item.service.name}`
+                {item.measure && item.measure > 0
+                  ? `${item.measure} ${measureShort(item.measureUnit ?? defaultMeasureUnit(item.service))} · ${item.service.name}`
                   : item.quantity > 1
                     ? `${item.quantity}× ${item.service.name}`
                     : item.service.name}
               </Text>
               <Text style={styles.cartPrice}>
                 ₹{(
-                  item.measureUnit
-                    ? unitPrice(item.service, item.measureUnit) * (item.measure ?? 1) * item.quantity
+                  item.measure && item.measure > 0
+                    ? unitPrice(item.service, item.measureUnit) * item.measure * (item.quantity || 1)
                     : Number(item.service.price) * item.quantity
                 ).toLocaleString('en-IN')}
               </Text>
@@ -281,6 +291,8 @@ export default function CartCheckoutScreen() {
             );
           })}
         </ScrollView>
+
+        <IssuePhotoField photo={issuePhoto} note={issueNote} onPhoto={setIssuePhoto} onNote={setIssueNote} />
 
         <Text style={styles.sectionTitle}>Select Date</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateRow}>

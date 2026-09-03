@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Service } from '../api/client';
 import { BRAND } from '../config';
-import { durationLabel, serviceImageUrl } from '../utils/serviceImagery';
+import CatalogImage from './CatalogImage';
+import { durationLabel, serviceImageCandidates } from '../utils/serviceImagery';
 
 type Props = {
   service: Service;
@@ -16,7 +17,7 @@ export default function HomeServiceCard({ service, onPress }: Props) {
 
   return (
     <Pressable style={({ pressed }) => [styles.card, pressed && styles.pressed]} onPress={onPress}>
-      <Image source={{ uri: serviceImageUrl(service) }} style={styles.image} resizeMode="cover" />
+      <CatalogImage uris={serviceImageCandidates(service)} style={styles.image} />
       <View style={styles.body}>
         <Text style={styles.name} numberOfLines={1}>{service.name}</Text>
         <Text style={styles.meta} numberOfLines={1}>

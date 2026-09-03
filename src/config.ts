@@ -6,7 +6,7 @@ import Constants from 'expo-constants';
  *  - 'local' → local Laravel (USB/WiFi)
  * Live API ke liye hamesha 'live' rakho.
  */
-export const API_MODE: 'live' | 'local' = 'live';
+export const API_MODE: 'live' | 'local' = 'local';
 
 /** Origin only — app appends /api automatically → https://frontdoorfix.in/api */
 export const LIVE_ORIGIN = 'https://frontdoorfix.in';
@@ -96,4 +96,4 @@ export const BRAND = {
 };
 
 /** Rebuild stamp for fresh APK */
-export const BUILD_STAMP = '2026-08-11 22:20:00';
+export const BUILD_STAMP = '2026-09-03 18:10:00';

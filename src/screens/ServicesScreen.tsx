@@ -24,6 +24,7 @@ import { useScreenPadding } from '../hooks/useScreenPadding';
 import { categoryIcon } from '../utils/serviceImagery';
 
 const SORT_OPTIONS: { id: SortOption | 'name'; label: string }[] = [
+  { id: 'latest', label: 'Latest' },
   { id: 'popular', label: 'Popular' },
   { id: 'name', label: 'Name' },
   { id: 'price_asc', label: 'Low Price' },
@@ -50,7 +51,7 @@ export default function ServicesScreen() {
   const [services, setServices] = useState<Service[]>([]);
   const [cat, setCat] = useState<string | null>(normalizeCategory(route.params?.category));
   const [search, setSearch] = useState('');
-  const [sort, setSort] = useState<SortOption | 'name'>(route.params?.sort || 'popular');
+  const [sort, setSort] = useState<SortOption | 'name'>(route.params?.sort || 'latest');
   const [maxPrice, setMaxPrice] = useState<number | null>(route.params?.maxPrice ?? null);
   const { favorites } = useProfile();
   const { itemCount } = useCart();

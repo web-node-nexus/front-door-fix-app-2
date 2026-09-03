@@ -20,9 +20,10 @@ type Props = {
   secure?: boolean;
   showToggle?: boolean;
   onToggle?: () => void;
-  keyboardType?: 'default' | 'email-address' | 'phone-pad';
+  keyboardType?: 'default' | 'email-address' | 'phone-pad' | 'number-pad';
   autoComplete?: 'email' | 'password' | 'name' | 'tel' | 'password-new' | 'off';
   placeholder?: string;
+  maxLength?: number;
   style?: ViewStyle;
 };
 
@@ -37,6 +38,7 @@ export default function AuthInput({
   keyboardType = 'default',
   autoComplete,
   placeholder,
+  maxLength,
   style,
 }: Props) {
   const [focused, setFocused] = useState(false);
@@ -62,11 +64,14 @@ export default function AuthInput({
           onChangeText={onChangeText}
           secureTextEntry={secure}
           autoCapitalize={
-            keyboardType === 'email-address' || keyboardType === 'phone-pad' ? 'none' : 'sentences'
+            keyboardType === 'email-address' || keyboardType === 'phone-pad' || keyboardType === 'number-pad'
+              ? 'none'
+              : 'sentences'
           }
           autoCorrect={false}
           autoComplete={autoComplete}
           keyboardType={keyboardType}
+          maxLength={maxLength}
           placeholder={placeholder ?? `Enter ${label.toLowerCase()}`}
           placeholderTextColor="#9CA3AF"
           onFocus={(e) => {

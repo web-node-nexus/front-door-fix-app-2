@@ -3,12 +3,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { api, Booking, Service } from '../../api/client';
@@ -22,13 +20,15 @@ import { useFeedback } from '../../context/FeedbackContext';
 import { pincodeForCity, SERVICE_CITIES, useLocation } from '../../context/LocationContext';
 import { nextDates, TIME_SLOTS } from '../../data/bookingSlots';
 import { useScreenPadding } from '../../hooks/useScreenPadding';
-import { durationLabel, serviceImageUrl } from '../../utils/serviceImagery';
+import CatalogImage from '../../components/CatalogImage';
+import { durationLabel, serviceImageCandidates } from '../../utils/serviceImagery';
+import IssuePhotoField from '../../components/IssuePhotoField';
+import { PickedPhoto } from '../../utils/profilePhoto';
+import MeasurePicker from '../../components/MeasurePicker';
 import {
-  availableMeasureUnits,
-  isAluminiumGlassService,
+  defaultMeasureUnit,
   lineAmount,
-  MEASURE_UNITS,
-  measureLabel,
+  measureShort,
   MeasureUnit,
   unitPrice,
 } from '../../utils/measureUnits';
@@ -47,40 +47,32 @@ export default function BookServiceScreen() {
   const dates = nextDates();
   const pickingLocation = useRef(false);
 
-  const alumGlass = isAluminiumGlassService(service);
-  const unitOptions = useMemo(
-    () => (service ? availableMeasureUnits(service) : []),
-    [service],
-  );
-  const defaultUnit = unitOptions[0] ?? 'sqft';
-
   const [measureUnit, setMeasureUnit] = useState<MeasureUnit>(
-    routeMeasureUnit && unitOptions.includes(routeMeasureUnit) ? routeMeasureUnit : defaultUnit,
+    routeMeasureUnit || (service ? defaultMeasureUnit(service) : 'qty'),
   );
   const [measure, setMeasure] = useState(
-    String(routeMeasure && routeMeasure > 0 ? routeMeasure : 1),
+    String(routeMeasure && routeMeasure > 0 ? routeMeasure : 0),
   );
 
-  const measureValue = Math.max(0.1, parseFloat(measure) || 0);
+  const measureValue = Math.max(0, parseFloat(measure) || 0);
   const rate = service ? unitPrice(service, measureUnit) : 0;
   const amountToPay = useMemo(() => {
     if (!service) return 0;
-    if (!alumGlass) return Number(service.price);
     return lineAmount(rate, measureValue, 1);
-  }, [alumGlass, measureValue, rate, service]);
+  }, [measureValue, rate, service]);
 
   useFocusEffect(
     useCallback(() => {
       if (!service) return;
       const cartItem = getItem(service.id);
-      if (cartItem?.measureUnit) {
-        setMeasureUnit(cartItem.measureUnit);
-        setMeasure(String(cartItem.measure ?? 1));
-      } else if (routeMeasureUnit && unitOptions.includes(routeMeasureUnit)) {
-        setMeasureUnit(routeMeasureUnit);
-        setMeasure(String(routeMeasure && routeMeasure > 0 ? routeMeasure : 1));
+      if (cartItem?.measure && cartItem.measure > 0) {
+        setMeasureUnit(cartItem.measureUnit ?? defaultMeasureUnit(service));
+        setMeasure(String(cartItem.measure));
+      } else if (routeMeasure && routeMeasure > 0) {
+        setMeasureUnit(routeMeasureUnit ?? defaultMeasureUnit(service));
+        setMeasure(String(routeMeasure));
       }
-    }, [getItem, routeMeasure, routeMeasureUnit, service, unitOptions]),
+    }, [getItem, routeMeasure, routeMeasureUnit, service]),
   );
 
   const [date, setDate] = useState(dates[1]?.value || dates[0].value);
@@ -91,6 +83,8 @@ export default function BookServiceScreen() {
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'upi'>('cod');
   const [saving, setSaving] = useState(false);
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
+  const [issuePhoto, setIssuePhoto] = useState<PickedPhoto | null>(null);
+  const [issueNote, setIssueNote] = useState('');
 
   const syncFromLocation = useCallback(() => {
     setAddressLine(location.addressLine);
@@ -172,8 +166,8 @@ export default function BookServiceScreen() {
     const method = paymentMethod === 'upi' ? 'upi' : 'cod';
     await updateLocation({ city: city.trim(), pincode: pincode.trim(), addressLine: addressLine.trim() });
 
-    if (alumGlass && (!measureValue || measureValue <= 0)) {
-      showWarning('Measure required', 'Please enter square feet or kg for this service.');
+    if (!measureValue || measureValue <= 0) {
+      showWarning('Quantity required', 'Please enter quantity for this service.');
       return;
     }
 
@@ -187,10 +181,13 @@ export default function BookServiceScreen() {
         booking_date: date,
         time_slot: slot,
         payment_method: method,
-        ...(alumGlass
+        measure: measureValue,
+        measure_unit: measureUnit,
+        ...(issueNote.trim() ? { issue_note: issueNote.trim() } : {}),
+        ...(issuePhoto?.base64
           ? {
-              measure: measureValue,
-              measure_unit: measureUnit,
+              issue_photo_base64: issuePhoto.base64,
+              issue_photo_ext: issuePhoto.ext || 'jpg',
             }
           : {}),
       });
@@ -224,63 +221,28 @@ export default function BookServiceScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.serviceCard}>
-        <Image source={{ uri: serviceImageUrl(service) }} style={styles.image} resizeMode="cover" />
+        <CatalogImage uris={serviceImageCandidates(service)} style={styles.image} />
         <View style={styles.serviceInfo}>
           <Text style={styles.serviceName}>{service.name}</Text>
           <Text style={styles.serviceCat}>{service.category?.name}</Text>
           <View style={styles.serviceMeta}>
             <Text style={styles.duration}>{durationLabel(service.duration_hours)}</Text>
             <Text style={styles.price}>
-              {alumGlass
-                ? `₹${rate.toLocaleString('en-IN')} / ${measureLabel(measureUnit).toLowerCase()}`
-                : `₹${Number(service.price).toLocaleString('en-IN')}`}
+              ₹{rate.toLocaleString('en-IN')} / {measureShort(measureUnit)}
             </Text>
           </View>
         </View>
       </View>
 
-      {alumGlass ? (
-        <View style={styles.measureCard}>
-          <Text style={styles.measureTitle}>Select unit (Aluminium & Glass)</Text>
-          <View style={styles.unitRow}>
-            {MEASURE_UNITS.filter((u) => unitOptions.includes(u.value)).map((u) => {
-              const active = measureUnit === u.value;
-              return (
-                <Pressable
-                  key={u.value}
-                  style={[styles.unitChip, active && styles.unitChipActive]}
-                  onPress={() => setMeasureUnit(u.value)}
-                >
-                  <Text style={[styles.unitChipText, active && styles.unitChipTextActive]}>
-                    {u.label}
-                  </Text>
-                  <Text style={[styles.unitRate, active && styles.unitChipTextActive]}>
-                    ₹{unitPrice(service, u.value).toLocaleString('en-IN')}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-          <Text style={styles.measureFieldLabel}>
-            Enter {measureLabel(measureUnit).toLowerCase()}
-          </Text>
-          <View style={styles.measureInputRow}>
-            <TextInput
-              style={styles.measureInput}
-              value={measure}
-              onChangeText={setMeasure}
-              keyboardType="decimal-pad"
-              placeholder="e.g. 10"
-              placeholderTextColor={BRAND.light}
-            />
-            <Text style={styles.measureUnitTag}>{measureLabel(measureUnit)}</Text>
-          </View>
-          <Text style={styles.estimateLine}>
-            {measureValue} {measureLabel(measureUnit).toLowerCase()} × ₹
-            {rate.toLocaleString('en-IN')} ={' '}
-            <Text style={styles.estimateValue}>₹{amountToPay.toLocaleString('en-IN')}</Text>
-          </Text>
-        </View>
+      {service ? (
+        <MeasurePicker
+          service={service}
+          measureUnit={measureUnit}
+          measure={measure}
+          estimated={amountToPay}
+          onUnitChange={setMeasureUnit}
+          onMeasureChange={setMeasure}
+        />
       ) : null}
 
       <Text style={styles.sectionTitle}>Service Address</Text>
@@ -363,6 +325,8 @@ export default function BookServiceScreen() {
         })}
       </ScrollView>
 
+      <IssuePhotoField photo={issuePhoto} note={issueNote} onPhoto={setIssuePhoto} onNote={setIssueNote} />
+
       <Text style={styles.sectionTitle}>Select Date</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateRow}>
         {dates.map((d) => (
@@ -418,19 +382,18 @@ export default function BookServiceScreen() {
       <View style={styles.summary}>
         <Text style={styles.summaryLabel}>Amount to pay</Text>
         <Text style={styles.summaryAmount}>₹{amountToPay.toLocaleString('en-IN')}</Text>
-        {alumGlass ? (
-          <Text style={styles.summaryDetail}>
-            {measureValue} {measureLabel(measureUnit).toLowerCase()} × ₹
-            {rate.toLocaleString('en-IN')}/{measureLabel(measureUnit).toLowerCase()}
-          </Text>
-        ) : null}
+        <Text style={styles.summaryDetail}>
+          {measureValue > 0
+            ? `${measureValue} ${measureShort(measureUnit)} × ₹${rate.toLocaleString('en-IN')}/${measureShort(measureUnit)}`
+            : 'Enter quantity above to see total'}
+        </Text>
         <Text style={styles.summaryNote}>
           {paymentMethod === 'cod' ? 'Pay after service completion (Cash on Delivery)' : 'Online payment · marked as Paid Online in My Bookings'}
         </Text>
       </View>
 
-      <Pressable onPress={confirm} disabled={saving}>
-        <LinearGradient colors={[BRAND.primary, BRAND.purple]} style={[styles.btn, saving && styles.btnDisabled]}>
+      <Pressable onPress={confirm} disabled={saving || measureValue <= 0}>
+        <LinearGradient colors={[BRAND.primary, BRAND.purple]} style={[styles.btn, (saving || measureValue <= 0) && styles.btnDisabled]}>
           <Ionicons name="checkmark-circle" size={20} color="#fff" />
           <Text style={styles.btnText}>{saving ? 'Booking...' : 'Confirm Booking'}</Text>
         </LinearGradient>
